@@ -84,7 +84,8 @@ const ParentBtn = styled.button<{ $active?: boolean }>`
   align-items: center;
   gap: 10px;
   border: 0;
-  background: ${({ $active }) => ($active ? colors.sidebarActive : "transparent")};
+  background: ${({ $active }) =>
+    $active ? colors.sidebarActive : "transparent"};
   color: ${({ $active }) => ($active ? "#fff" : "#cbd5e1")};
   border-radius: 10px;
   padding: 10px 12px;
@@ -108,7 +109,8 @@ const SubLink = styled(Link)<{ $active?: boolean }>`
   border-radius: 10px;
   text-decoration: none;
   color: ${({ $active }) => ($active ? "#fff" : "#94a3b8")};
-  background: ${({ $active }) => ($active ? colors.sidebarActive : "transparent")};
+  background: ${({ $active }) =>
+    $active ? colors.sidebarActive : "transparent"};
   font-size: 13px;
   font-weight: 550;
 
@@ -153,7 +155,8 @@ const LogoutBtn = styled.button<{ $collapsed: boolean }>`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: ${({ $collapsed }) => ($collapsed ? "center" : "flex-start")};
+  justify-content: ${({ $collapsed }) =>
+    $collapsed ? "center" : "flex-start"};
   gap: 10px;
   border: 1px solid rgba(248, 113, 113, 0.35);
   background: transparent;
@@ -260,7 +263,7 @@ export function Sidebar({
         <Logo>HR</Logo>
         {!collapsed || open ? (
           <BrandText>
-            <BrandTitle>Hiring-Signal Radar</BrandTitle>
+            <BrandTitle>Tipoff Daily</BrandTitle>
             <BrandSub>{user?.agencyName ?? "Agency"}</BrandSub>
           </BrandText>
         ) : null}

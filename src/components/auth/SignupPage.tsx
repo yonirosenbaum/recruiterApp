@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { Alert, Button, TextField } from '@mui/material';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -85,6 +85,12 @@ export function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const fromQuery = new URLSearchParams(window.location.search).get('email');
+    if (fromQuery) setEmail(fromQuery);
+  }, []);
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const session = await signup.mutateAsync({
@@ -101,16 +107,16 @@ export function SignupPage() {
     <Page>
       <Card>
         <Brand>
-          <Logo>HR</Logo>
+          <Logo>TD</Logo>
           <div>
-            <strong>Hiring-Signal Radar</strong>
+            <strong>Tipoff Daily</strong>
             <div style={{ fontSize: 12, color: '#64748b' }}>Agency onboarding</div>
           </div>
         </Brand>
         <Title>Create your account</Title>
         <Sub>
-          After signup you&apos;ll claim an exclusive territory slot, then explore a
-          live demo of overnight BD triggers.
+          Next you&apos;ll request an exclusive city × vertical territory. Only
+          the agency that holds a slot sees that market&apos;s tipoffs.
         </Sub>
         <Form onSubmit={onSubmit}>
           <TextField

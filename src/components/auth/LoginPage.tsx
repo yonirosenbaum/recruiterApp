@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import styled from 'styled-components';
-import { Alert, Button, TextField } from '@mui/material';
-import { useAuth } from '@/components/auth/AuthProvider';
-import { useLoginMutation } from '@/lib/query/hooks';
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import styled from "styled-components";
+import { Alert, Button, TextField } from "@mui/material";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { useLoginMutation } from "@/lib/query/hooks";
 
 const Page = styled.div`
   min-height: 100vh;
@@ -14,8 +14,16 @@ const Page = styled.div`
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.18), transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(245, 158, 11, 0.16), transparent 35%),
+    radial-gradient(
+      circle at 10% 10%,
+      rgba(37, 99, 235, 0.18),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 90% 80%,
+      rgba(245, 158, 11, 0.16),
+      transparent 35%
+    ),
     linear-gradient(160deg, #0f172a 0%, #1e293b 45%, #0f2744 100%);
 `;
 
@@ -80,14 +88,14 @@ export function LoginPage() {
   const router = useRouter();
   const { setSession } = useAuth();
   const login = useLoginMutation();
-  const [email, setEmail] = useState('jd@meridian.com.au');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState("jd@meridian.com.au");
+  const [password, setPassword] = useState("password");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const session = await login.mutateAsync({ email, password });
     setSession(session);
-    router.push(session.user.role === 'SUPER_ADMIN' ? '/admin' : '/radar');
+    router.push(session.user.role === "SUPER_ADMIN" ? "/admin" : "/radar");
   };
 
   return (
@@ -96,8 +104,10 @@ export function LoginPage() {
         <Brand>
           <Logo>HR</Logo>
           <div>
-            <strong>Hiring-Signal Radar</strong>
-            <div style={{ fontSize: 12, color: '#64748b' }}>Meridian Recruitment</div>
+            <strong>Tipoff Daily</strong>
+            <div style={{ fontSize: 12, color: "#64748b" }}>
+              Meridian Recruitment
+            </div>
           </div>
         </Brand>
         <Title>Sign in</Title>
@@ -122,8 +132,13 @@ export function LoginPage() {
           {login.isError && (
             <Alert severity="error">{(login.error as Error).message}</Alert>
           )}
-          <Button type="submit" variant="contained" size="large" disabled={login.isPending}>
-            {login.isPending ? 'Signing in…' : 'Sign in'}
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            disabled={login.isPending}
+          >
+            {login.isPending ? "Signing in…" : "Sign in"}
           </Button>
         </Form>
         <Foot>

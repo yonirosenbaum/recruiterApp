@@ -90,12 +90,13 @@ const MetricLabel = styled.div`
   text-transform: uppercase;
 `;
 
-const MetricValue = styled.div`
+const MetricValue = styled.div<{ $compact?: boolean }>`
   margin-top: 6px;
-  font-size: 28px;
+  font-size: ${(p) => (p.$compact ? "16px" : "28px")};
   font-weight: 800;
   color: #0f172a;
   letter-spacing: -0.03em;
+  line-height: 1.2;
 `;
 
 const MetricHint = styled.div`
@@ -171,7 +172,11 @@ export function RadarPage() {
             </MetricCard>
             <MetricCard>
               <MetricLabel>Median time-to-fill</MetricLabel>
-              <MetricValue>{data.metrics.medianTimeToFillDays}d</MetricValue>
+              <MetricValue $compact={data.metrics.medianTimeToFillDays == null}>
+                {data.metrics.medianTimeToFillDays == null
+                  ? "Not available"
+                  : `${data.metrics.medianTimeToFillDays}d`}
+              </MetricValue>
               <MetricHint>for your verticals</MetricHint>
             </MetricCard>
             <MetricCard>

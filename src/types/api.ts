@@ -37,7 +37,7 @@ export type RadarResponse = {
   metrics: {
     newTriggersToday: number;
     newTriggersDelta: number;
-    medianTimeToFillDays: number;
+    medianTimeToFillDays: number | null;
     repostRatePercent: number;
     repostRateScope: string;
     leadsContactedToday: number;

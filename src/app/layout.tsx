@@ -10,8 +10,9 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'Hiring-Signal Radar',
-  description: 'Exclusive BD triggers from careers-site hiring signals.',
+  title: 'Tipoff Daily',
+  description:
+    'Exclusive hiring tipoffs from public job ads — one agency per city × vertical territory.',
 };
 
 export default function RootLayout({

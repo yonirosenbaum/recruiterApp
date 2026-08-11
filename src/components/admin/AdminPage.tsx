@@ -32,6 +32,7 @@ import {
   useUpdateScrapeLocationPolicyMutation,
   useDeleteScrapeLocationPolicyMutation,
 } from '@/lib/query/hooks';
+import { AdminCoverageTable } from '@/components/admin/AdminCoverageTable';
 
 const Grid = styled.div`
   display: grid;
@@ -128,7 +129,7 @@ export function AdminPage() {
     <>
       <AppHeader
         title="Admin"
-        subtitle="Users, territories, and scrape location allowlists."
+        subtitle="Users, territories, coverage, and scrape location allowlists."
       />
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
@@ -136,6 +137,7 @@ export function AdminPage() {
         <Tab label="Users" />
         <Tab label="Assign slot" />
         <Tab label="Scrape locations" />
+        <Tab label="Coverage" />
       </Tabs>
 
       {tab === 0 && (
@@ -504,6 +506,13 @@ export function AdminPage() {
             </AssignBox>
           </Card>
         </Grid>
+      )}
+
+      {tab === 4 && (
+        <Card>
+          <Title>Jobs and companies by city × vertical</Title>
+          <AdminCoverageTable />
+        </Card>
       )}
     </>
   );

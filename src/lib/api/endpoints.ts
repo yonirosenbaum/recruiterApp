@@ -10,14 +10,16 @@ import type {
   DigestResponse,
   DigestSendResult,
   MarketIntelReport,
+  PublicTipoffReport,
   LastContacted,
   LapsedImportReport,
   LapsedListResponse,
-  PublicBenchmarkListItem,
+  PublicBenchmarkIndex,
   RadarResponse,
   TerritoriesOptions,
   TerritoryRequestItem,
   AdminUser,
+  AdminTerritoryStats,
   TerritoryRequestStatus,
   ScrapeLocationPolicy,
 } from '@/types/api';
@@ -138,16 +140,23 @@ export const endpoints = {
   benchmarkForJob: (canonicalJobId: string) =>
     apiFetch<BenchmarkResult>(`/benchmarks/for-job/${canonicalJobId}`),
 
-  publicBenchmarks: (limit = 40) =>
-    apiFetch<PublicBenchmarkListItem[]>(
-      `/benchmarks/public?limit=${limit}`,
+  publicBenchmarks: (params?: { limit?: number; areaId?: string }) => {
+    const search = new URLSearchParams();
+    search.set('limit', String(params?.limit ?? 40));
+    if (params?.areaId) search.set('areaId', params.areaId);
+    return apiFetch<PublicBenchmarkIndex>(
+      `/benchmarks/public?${search.toString()}`,
       { auth: false },
-    ),
+    );
+  },
 
   publicBenchmark: (slug: string) =>
     apiFetch<BenchmarkResult>(`/benchmarks/public/${encodeURIComponent(slug)}`, {
       auth: false,
     }),
+
+  publicTipoffReport: () =>
+    apiFetch<PublicTipoffReport>('/benchmarks/report', { auth: false }),
 
   territoryOptions: (scope: TerritoryScope = 'allocated') =>
     apiFetch<TerritoriesOptions>(`/territories/options?scope=${scope}`),
@@ -212,6 +221,9 @@ export const endpoints = {
   demoRadar: () => apiFetch<DemoRadarResponse>('/demo/radar', { auth: false }),
 
   adminUsers: () => apiFetch<{ users: AdminUser[] }>('/admin/users'),
+
+  adminTerritoryStats: () =>
+    apiFetch<AdminTerritoryStats>('/admin/territory-stats'),
 
   adminTerritoryRequests: (status?: TerritoryRequestStatus) =>
     apiFetch<{ requests: TerritoryRequestItem[] }>(

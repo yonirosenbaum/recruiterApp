@@ -2,7 +2,6 @@
 
 import styled from "styled-components";
 import { Alert, Button, CircularProgress, Tab, Tabs } from "@mui/material";
-import { useState } from "react";
 import { useMarketIntelQuery, useSendDigestMutation } from "@/lib/query/hooks";
 import type { MarketIntelCompanyRow, MarketIntelReport } from "@/types/api";
 
@@ -152,12 +151,19 @@ function reportToMarkdown(report: MarketIntelReport): string {
   return lines.join("\n");
 }
 
-export function MarketIntelPanel() {
-  const [period, setPeriod] = useState<"weekly" | "quarterly">("weekly");
-  const { data, isLoading, isError } = useMarketIntelQuery(period);
+export function MarketIntelPanel({
+  period,
+  onPeriodChange,
+}: {
+  period: "weekly" | "quarterly";
+  onPeriodChange: (period: "weekly" | "quarterly") => void;
+}) {
+  const { data, isLoading, isError } = useMarketIntelQuery("weekly", {
+    enabled: period === "weekly",
+  });
   const sendWeekly = useSendDigestMutation();
 
-  const onDownload = () => {
+  const onDownloadWeekly = () => {
     if (!data) return;
     const blob = new Blob([reportToMarkdown(data)], {
       type: "text/markdown;charset=utf-8",
@@ -165,10 +171,7 @@ export function MarketIntelPanel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download =
-      period === "quarterly"
-        ? "tipoff-quarterly-report.md"
-        : "tipoff-weekly-market-intel.md";
+    a.download = "tipoff-weekly-market-intel.md";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -187,31 +190,50 @@ export function MarketIntelPanel() {
     <Panel>
       <Title>Market intel</Title>
       <Sub>
-        End-employer hiring only under Who&apos;s hiring. Agency ads are listed
-        separately as competitor activity. Stats only appear when the sample is
-        real (n≥10 rates, n≥20 salary, n≥10 closed for TTF).
+        {period === "quarterly"
+          ? "The public quarterly edition — open it to share, or save a PDF."
+          : "End-employer hiring only under Who's hiring. Agency ads are listed separately as competitor activity. Stats only appear when the sample is real (n≥10 rates, n≥20 salary, n≥10 closed for TTF)."}
       </Sub>
 
       <Tabs
         value={period}
-        onChange={(_, value: "weekly" | "quarterly") => setPeriod(value)}
+        onChange={(_, value: "weekly" | "quarterly") => onPeriodChange(value)}
         sx={{ mb: 2, minHeight: 36 }}
       >
         <Tab value="weekly" label="Weekly snapshot" />
         <Tab value="quarterly" label="Quarterly Tipoff Report" />
       </Tabs>
 
-      {isLoading && <CircularProgress size={28} />}
-      {isError && <Alert severity="error">Failed to load market intel.</Alert>}
+      {period === "quarterly" && (
+        <Actions style={{ marginTop: 0 }}>
+          <Button href="/report" variant="contained" size="small">
+            Open report
+          </Button>
+          <Button
+            href="/report?print=1"
+            target="_blank"
+            rel="noreferrer"
+            variant="outlined"
+            size="small"
+          >
+            Download PDF
+          </Button>
+        </Actions>
+      )}
 
-      {data && !hasAnything && (
+      {period === "weekly" && isLoading && <CircularProgress size={28} />}
+      {period === "weekly" && isError && (
+        <Alert severity="error">Failed to load market intel.</Alert>
+      )}
+
+      {period === "weekly" && data && !hasAnything && (
         <Empty>
           Nothing solid enough to show yet for this lookback — modules appear as
           closed roles and live volume mature.
         </Empty>
       )}
 
-      {data && hasAnything && (
+      {period === "weekly" && data && hasAnything && (
         <>
           <Sub style={{ marginTop: 0 }}>
             {data.periodLabel} · {data.lookbackDays}d lookback
@@ -271,21 +293,17 @@ export function MarketIntelPanel() {
           </Grid>
 
           <Actions>
-            <Button variant="outlined" size="small" onClick={onDownload}>
-              Download {period === "quarterly" ? "Tipoff Report" : "intel"} .md
+            <Button variant="outlined" size="small" onClick={onDownloadWeekly}>
+              Download intel .md
             </Button>
-            {period === "weekly" && (
-              <Button
-                variant="contained"
-                size="small"
-                disabled={sendWeekly.isPending}
-                onClick={() => sendWeekly.mutate("weekly")}
-              >
-                {sendWeekly.isPending
-                  ? "Sending…"
-                  : "Email weekly digest to me"}
-              </Button>
-            )}
+            <Button
+              variant="contained"
+              size="small"
+              disabled={sendWeekly.isPending}
+              onClick={() => sendWeekly.mutate("weekly")}
+            >
+              {sendWeekly.isPending ? "Sending…" : "Email weekly digest to me"}
+            </Button>
           </Actions>
 
           {sendWeekly.isSuccess && sendWeekly.variables === "weekly" && (

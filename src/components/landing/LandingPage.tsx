@@ -273,6 +273,34 @@ const LiveLink = styled.div`
   }
 `;
 
+const ReportBand = styled.section`
+  margin-top: 32px;
+  padding: 22px 0;
+  border-top: 1.5px solid ${rule};
+  border-bottom: 1.5px solid ${rule};
+`;
+
+const ReportTitle = styled.h3`
+  margin: 0 0 8px;
+  font-family: var(--font-landing-display), 'Libre Baskerville', Georgia, serif;
+  font-size: 1.55rem;
+  line-height: 1.15;
+`;
+
+const ReportBody = styled.p`
+  margin: 0 0 12px;
+  max-width: 62ch;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  color: ${muted};
+`;
+
+const ReportLink = styled(Link)`
+  color: #1d4ed8;
+  font-weight: 700;
+  text-decoration: none;
+`;
+
 const Scarcity = styled.section`
   margin-top: 28px;
   padding: 18px 16px;
@@ -428,6 +456,17 @@ function editionDate() {
   }).format(new Date());
 }
 
+function currentQuarter() {
+  const parts = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Sydney',
+    month: 'numeric',
+    year: 'numeric',
+  }).formatToParts(new Date());
+  const month = Number(parts.find((p) => p.type === 'month')?.value ?? 1);
+  const year = Number(parts.find((p) => p.type === 'year')?.value ?? 2026);
+  return `Q${Math.ceil(month / 3)} ${year}`;
+}
+
 const SAMPLE_LEADS = [
   {
     title: 'Struggling role — open well past fill time',
@@ -459,6 +498,7 @@ export function LandingPage() {
     <Page>
       <Shell>
         <Nav>
+          <Link href="/report">Report</Link>
           <Link href="/login">Log in</Link>
           <Link href="/signup">Sign up</Link>
         </Nav>
@@ -541,6 +581,19 @@ export function LandingPage() {
             </SignupCard>
           </SignupFirst>
         </Grid>
+
+        <ReportBand>
+          <SectionLabel>The quarterly edition</SectionLabel>
+          <ReportTitle>Tipoff Report</ReportTitle>
+          <ReportBody>
+            National hiring, fill times, and salary movement from public ads —
+            the page directors forward, and the live demo of the benchmarks
+            themselves.
+          </ReportBody>
+          <ReportLink href="/report">
+            Read the {currentQuarter()} report →
+          </ReportLink>
+        </ReportBand>
 
         <Scarcity>
           <ScarcityTitle>One agency per territory.</ScarcityTitle>

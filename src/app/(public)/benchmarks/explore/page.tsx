@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { Alert, CircularProgress } from '@mui/material';
 import { usePublicBenchmarksQuery } from '@/lib/query/hooks';
@@ -33,10 +34,49 @@ const Title = styled.h1`
 `;
 
 const Lead = styled.p`
-  margin: 0 0 28px;
+  margin: 0 0 18px;
   color: #64748b;
   font-size: 15px;
   line-height: 1.5;
+
+  a {
+    color: #ea580c;
+    font-weight: 700;
+    text-decoration: none;
+  }
+`;
+
+const Filters = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+`;
+
+const FilterLabel = styled.label`
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+`;
+
+const CitySelect = styled.select`
+  min-width: 220px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #0f172a;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  &:focus {
+    outline: 2px solid #fb923c;
+    outline-offset: 1px;
+  }
 `;
 
 const List = styled.ul`
@@ -83,7 +123,16 @@ const ItemStat = styled.div`
 `;
 
 export default function PublicBenchmarksExplorePage() {
-  const { data, isLoading, isError } = usePublicBenchmarksQuery();
+  const [areaId, setAreaId] = useState('');
+  const { data, isLoading, isError } = usePublicBenchmarksQuery(
+    areaId || undefined,
+  );
+  const items = data?.items ?? [];
+  const areas = data?.areas ?? [];
+  const selectedCity = useMemo(
+    () => areas.find((a) => a.id === areaId)?.name,
+    [areas, areaId],
+  );
 
   return (
     <Page>
@@ -91,30 +140,63 @@ export default function PublicBenchmarksExplorePage() {
         <Brand>Tipoff Daily</Brand>
         <Title>Hiring benchmarks</Title>
         <Lead>
-          Median time-to-fill by city and role title, computed live from closed
-          job ads. No account required.
+          Median time-to-fill by role title across Australia, or a single city.
+          No account required. For the national picture, read the{' '}
+          <Link href="/report">quarterly Tipoff Report</Link>.
         </Lead>
+
+        <Filters>
+          <FilterLabel htmlFor="explore-city">City</FilterLabel>
+          <CitySelect
+            id="explore-city"
+            value={areaId}
+            onChange={(e) => setAreaId(e.target.value)}
+          >
+            <option value="">Australia</option>
+            {areas.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+                {a.state ? ` · ${a.state}` : ''}
+              </option>
+            ))}
+          </CitySelect>
+        </Filters>
 
         {isLoading && <CircularProgress />}
         {isError && (
           <Alert severity="error">Could not load public benchmarks.</Alert>
         )}
 
-        {data && (
+        {data && items.length === 0 && (
+          <Alert severity="info">
+            {selectedCity
+              ? `No city × title slices with enough sample in ${selectedCity} yet.`
+              : 'No Australia-wide title slices with enough sample yet.'}
+          </Alert>
+        )}
+
+        {items.length > 0 && (
           <List>
-            {data.map((row) => (
+            {items.map((row) => (
               <li key={row.slug}>
                 <Item href={`/benchmarks/${row.slug}`}>
                   <div>
                     <ItemTitle>{row.titleQuery}</ItemTitle>
                     <ItemMeta>
-                      {row.areaName} · {row.sampleSize} closed
+                      {row.areaName}
+                      {row.sampleSize > 0 ? ` · ${row.sampleSize} closed` : ''}
+                      {(row.openRoleCount ?? 0) > 0
+                        ? ` · ${row.openRoleCount} open`
+                        : ''}
+                      {(row.salaryRoleCount ?? 0) > 0
+                        ? ` · ${row.salaryRoleCount} roles with salary`
+                        : ''}
                     </ItemMeta>
                   </div>
                   <ItemStat>
                     {row.marketMedianTtfDays != null
                       ? `${row.marketMedianTtfDays}d median`
-                      : '—'}
+                      : 'Open now'}
                   </ItemStat>
                 </Item>
               </li>

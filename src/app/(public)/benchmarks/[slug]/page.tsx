@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import styled from 'styled-components';
-import { Alert, CircularProgress } from '@mui/material';
-import { usePublicBenchmarkQuery } from '@/lib/query/hooks';
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import styled from "styled-components";
+import { Alert, CircularProgress } from "@mui/material";
+import { usePublicBenchmarkQuery } from "@/lib/query/hooks";
 
 const Page = styled.main`
   min-height: 100vh;
@@ -88,7 +88,7 @@ const Note = styled.p`
 
 export default function PublicBenchmarkSlugPage() {
   const params = useParams<{ slug: string }>();
-  const slug = typeof params.slug === 'string' ? params.slug : '';
+  const slug = typeof params.slug === "string" ? params.slug : "";
   const { data, isLoading, isError } = usePublicBenchmarkQuery(slug);
 
   return (
@@ -109,13 +109,13 @@ export default function PublicBenchmarkSlugPage() {
             </Title>
             <Lead>
               Live market median time-to-fill
-              {data.verticalName ? ` · ${data.verticalName}` : ''}.
+              {data.verticalName ? ` · ${data.verticalName}` : ""}.
             </Lead>
 
             {!data.available ? (
               <Alert severity="info" sx={{ mb: 2 }}>
-                Not enough closed roles yet ({data.sampleSize} found). Check back
-                as more ads close.
+                Not enough closed roles yet ({data.sampleSize} found). Check
+                back as more ads close.
               </Alert>
             ) : null}
 
@@ -123,8 +123,8 @@ export default function PublicBenchmarkSlugPage() {
               <Stat>
                 <StatLabel>MEDIAN FILL</StatLabel>
                 <StatValue>
-                  {data.marketMedianTtfDays ?? '—'}
-                  {data.marketMedianTtfDays != null ? 'd' : ''}
+                  {data.marketMedianTtfDays ?? "—"}
+                  {data.marketMedianTtfDays != null ? "d" : ""}
                 </StatValue>
               </Stat>
               <Stat>
@@ -136,61 +136,65 @@ export default function PublicBenchmarkSlugPage() {
                 <StatValue>{data.openRoleCount}</StatValue>
               </Stat>
               <Stat>
+                <StatLabel>ROLES WITH SALARY</StatLabel>
+                <StatValue>{data.salary.sampleSize}</StatValue>
+              </Stat>
+              <Stat>
                 <StatLabel>SALARY MEDIAN</StatLabel>
                 <StatValue>
                   {data.salary.mid != null
-                    ? `$${data.salary.mid.toLocaleString('en-AU')}`
-                    : '—'}
+                    ? `$${data.salary.mid.toLocaleString("en-AU")}`
+                    : "—"}
                 </StatValue>
               </Stat>
               <Stat>
                 <StatLabel>SALARY MEAN</StatLabel>
                 <StatValue>
                   {data.salary.mean != null
-                    ? `$${data.salary.mean.toLocaleString('en-AU')}`
-                    : '—'}
+                    ? `$${data.salary.mean.toLocaleString("en-AU")}`
+                    : "—"}
                 </StatValue>
               </Stat>
               <Stat>
                 <StatLabel>SALARY LOW</StatLabel>
                 <StatValue>
                   {data.salary.min != null
-                    ? `$${data.salary.min.toLocaleString('en-AU')}`
-                    : '—'}
+                    ? `$${data.salary.min.toLocaleString("en-AU")}`
+                    : "—"}
                 </StatValue>
               </Stat>
               <Stat>
                 <StatLabel>SALARY P25</StatLabel>
                 <StatValue>
                   {data.salary.p25 != null
-                    ? `$${data.salary.p25.toLocaleString('en-AU')}`
-                    : '—'}
+                    ? `$${data.salary.p25.toLocaleString("en-AU")}`
+                    : "—"}
                 </StatValue>
               </Stat>
               <Stat>
                 <StatLabel>SALARY P75</StatLabel>
                 <StatValue>
                   {data.salary.p75 != null
-                    ? `$${data.salary.p75.toLocaleString('en-AU')}`
-                    : '—'}
+                    ? `$${data.salary.p75.toLocaleString("en-AU")}`
+                    : "—"}
                 </StatValue>
               </Stat>
               <Stat>
                 <StatLabel>SALARY HIGH</StatLabel>
                 <StatValue>
                   {data.salary.max != null
-                    ? `$${data.salary.max.toLocaleString('en-AU')}`
-                    : '—'}
+                    ? `$${data.salary.max.toLocaleString("en-AU")}`
+                    : "—"}
                 </StatValue>
               </Stat>
             </Grid>
 
             <Note>
-              Salary figures use advertised midpoints ((min+max)/2) from{' '}
+              Salary figures use advertised midpoints ((min+max)/2) from{" "}
               {data.salary.sampleSize} ads · lookback {data.lookbackDays} days.
               {data.salary.sampleSize > 0 && data.salary.sampleSize < 10
-                ? ' P25/P75 need ≥10 salary ads.'
-                : ''}{' '}
+                ? " P25/P75 need ≥10 salary ads."
+                : ""}{" "}
               Figures exclude recruiter-private “your opens” data.
             </Note>
           </>

@@ -116,6 +116,7 @@ export type MarketIntelTtfRow = {
   placeKind: 'area' | 'region';
   sampleSize: number;
   medianTtfDays: number;
+  slug?: string | null;
 };
 
 export type MarketIntelRepostRow = {
@@ -277,7 +278,20 @@ export type PublicBenchmarkListItem = {
   areaId: string;
   areaName: string;
   sampleSize: number;
+  openRoleCount?: number;
+  salaryRoleCount?: number;
   marketMedianTtfDays: number | null;
+};
+
+export type PublicBenchmarkIndex = {
+  items: PublicBenchmarkListItem[];
+  areas: Array<{ id: string; name: string; state: string }>;
+};
+
+export type PublicTipoffReport = MarketIntelReport & {
+  headlines: string[];
+  editionLabel: string;
+  featuredBenchmarks: PublicBenchmarkListItem[];
 };
 
 export type CoverageResponse = {
@@ -349,6 +363,23 @@ export type DemoRadarResponse = {
   headline: string;
   valueProps: Array<{ title: string; body: string }>;
   sampleTriggers: RadarTrigger[];
+};
+
+export type AdminTerritoryComboRow = {
+  areaId: string;
+  areaName: string;
+  state: string;
+  verticalId: string;
+  verticalName: string;
+  jobs: number;
+  liveJobs: number;
+  companies: number;
+};
+
+export type AdminTerritoryStats = {
+  rows: AdminTerritoryComboRow[];
+  unmapped: { jobs: number; liveJobs: number; companies: number };
+  totals: { jobs: number; liveJobs: number; companies: number };
 };
 
 export type AdminUser = {

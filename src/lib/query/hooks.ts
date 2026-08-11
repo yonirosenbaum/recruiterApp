@@ -1,6 +1,11 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { endpoints, type TerritoryScope } from '@/lib/api/endpoints';
 import type { TerritoryRequestStatus } from '@/types/api';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -26,13 +31,16 @@ export const queryKeys = {
     verticalId?: string;
     lookbackDays?: number;
   }) => ['benchmarks', 'query', params] as const,
-  publicBenchmarks: ['benchmarks', 'public'] as const,
+  publicBenchmarks: (areaId?: string) =>
+    ['benchmarks', 'public', areaId ?? 'all'] as const,
   publicBenchmark: (slug: string) => ['benchmarks', 'public', slug] as const,
+  publicTipoffReport: ['benchmarks', 'report'] as const,
   territoryOptions: (scope: TerritoryScope) =>
     ['territories', 'options', scope] as const,
   myTerritoryRequests: ['territories', 'requests', 'mine'] as const,
   demoRadar: ['demo', 'radar'] as const,
   adminUsers: ['admin', 'users'] as const,
+  adminTerritoryStats: ['admin', 'territory-stats'] as const,
   adminRequests: (status?: TerritoryRequestStatus) =>
     ['admin', 'territory-requests', status] as const,
   adminScrapeLocationPolicies: ['admin', 'scrape-location-policies'] as const,
@@ -63,7 +71,10 @@ export function useSendDigestMutation() {
   });
 }
 
-export function useMarketIntelQuery(period: 'weekly' | 'quarterly' = 'weekly') {
+export function useMarketIntelQuery(
+  period: 'weekly' | 'quarterly' = 'weekly',
+  options?: { enabled?: boolean },
+) {
   const { user } = useAuth();
   return useQuery({
     queryKey: queryKeys.marketIntel(user?.id, period),
@@ -72,7 +83,7 @@ export function useMarketIntelQuery(period: 'weekly' | 'quarterly' = 'weekly') {
         period,
         lookbackDays: period === 'quarterly' ? 90 : undefined,
       }),
-    enabled: Boolean(user),
+    enabled: Boolean(user) && (options?.enabled ?? true),
   });
 }
 
@@ -190,10 +201,11 @@ export function useBenchmarksQuery(
   });
 }
 
-export function usePublicBenchmarksQuery() {
+export function usePublicBenchmarksQuery(areaId?: string) {
   return useQuery({
-    queryKey: queryKeys.publicBenchmarks,
-    queryFn: () => endpoints.publicBenchmarks(),
+    queryKey: queryKeys.publicBenchmarks(areaId),
+    queryFn: () => endpoints.publicBenchmarks({ areaId: areaId || undefined }),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -202,6 +214,13 @@ export function usePublicBenchmarkQuery(slug: string) {
     queryKey: queryKeys.publicBenchmark(slug),
     queryFn: () => endpoints.publicBenchmark(slug),
     enabled: Boolean(slug),
+  });
+}
+
+export function usePublicTipoffReportQuery() {
+  return useQuery({
+    queryKey: queryKeys.publicTipoffReport,
+    queryFn: () => endpoints.publicTipoffReport(),
   });
 }
 
@@ -287,6 +306,14 @@ export function useAdminUsersQuery() {
   return useQuery({
     queryKey: queryKeys.adminUsers,
     queryFn: () => endpoints.adminUsers(),
+  });
+}
+
+export function useAdminTerritoryStatsQuery(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: queryKeys.adminTerritoryStats,
+    queryFn: () => endpoints.adminTerritoryStats(),
+    enabled: options?.enabled ?? true,
   });
 }
 

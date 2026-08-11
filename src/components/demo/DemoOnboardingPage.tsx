@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import styled from 'styled-components';
-import { Alert, Button, CircularProgress } from '@mui/material';
-import { TriggerCard } from '@/components/radar/TriggerCard';
-import { useDemoRadarQuery } from '@/lib/query/hooks';
+import { useRouter } from "next/navigation";
+import styled from "styled-components";
+import { Alert, Button, CircularProgress } from "@mui/material";
+import { TriggerCard } from "@/components/radar/TriggerCard";
+import { useDemoRadarQuery } from "@/lib/query/hooks";
 
 const Page = styled.div`
   min-height: 100vh;
@@ -30,7 +30,7 @@ const Title = styled.h1`
 
 const Props = styled.div`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-top: 20px;
 
@@ -113,7 +113,7 @@ export function DemoOnboardingPage() {
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={() => router.push('/radar')}
+                onClick={() => router.push("/radar")}
               >
                 Enter Radar
               </Button>
@@ -122,10 +122,9 @@ export function DemoOnboardingPage() {
 
           <DemoWrap>
             <DemoLabel>
-              <h2 style={{ margin: 0, fontSize: 18 }}>Sample overnight triggers</h2>
-              <span style={{ color: '#64748b', fontSize: 13 }}>
-                Same shape as production materialized views
-              </span>
+              <h2 style={{ margin: 0, fontSize: 18 }}>
+                Sample overnight triggers
+              </h2>
             </DemoLabel>
             <List>
               {data.sampleTriggers.map((trigger) => (

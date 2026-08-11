@@ -52,6 +52,10 @@ const Meta = styled.p`
   font-size: 13px;
 `;
 
+const CompanyName = styled.span`
+  color: #0f172a;
+`;
+
 const Insight = styled.p`
   margin: 12px 0 0;
   color: #334155;
@@ -181,7 +185,9 @@ export function TriggerCard({ trigger, compact = false }: TriggerCardProps) {
           ) : null}
           <JobTitle>{trigger.jobTitle}</JobTitle>
           <Meta>
-            {trigger.companyName} · {trigger.location}
+            <CompanyName>{trigger.companyName}</CompanyName>
+            {" · "}
+            {trigger.location}
           </Meta>
         </div>
         <HeatGauge score={trigger.heatScore} size={compact ? 56 : 68} />

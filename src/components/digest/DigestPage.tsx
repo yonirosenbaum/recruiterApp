@@ -1,26 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import styled from 'styled-components';
 import {
   Alert,
   Button,
-  Checkbox,
   CircularProgress,
-  FormControlLabel,
-  TextField,
+  Tab,
+  Tabs,
 } from '@mui/material';
 import { AppHeader } from '@/components/layout/AppHeader';
-import { useDigestQuery } from '@/lib/query/hooks';
-
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 0.8fr);
-  gap: 16px;
-
-  @media (max-width: 980px) {
-    grid-template-columns: 1fr;
-  }
-`;
+import {
+  useDigestQuery,
+  useSendDigestMutation,
+} from '@/lib/query/hooks';
+import type { DigestLeadGroup } from '@/types/api';
 
 const Card = styled.section`
   background: #fff;
@@ -36,15 +30,17 @@ const CardTitle = styled.h2`
 `;
 
 const CardSub = styled.p`
-  margin: 4px 0 0;
+  margin: 4px 0 16px;
   color: #64748b;
   font-size: 12px;
 `;
 
-const Actions = styled.div`
-  display: flex;
-  gap: 8px;
-  margin: 14px 0 16px;
+const SectionLabel = styled.h3`
+  margin: 20px 0 8px;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  color: #64748b;
 `;
 
 const EmailMeta = styled.div`
@@ -67,10 +63,6 @@ const EmailMeta = styled.div`
 const Signal = styled.div`
   border-top: 1px solid #eef2f7;
   padding: 12px 0;
-
-  &:first-of-type {
-    border-top: 0;
-  }
 `;
 
 const SignalTop = styled.div`
@@ -109,46 +101,126 @@ const Quote = styled.blockquote`
   line-height: 1.45;
 `;
 
-const SideStack = styled.div`
+const IntelBox = styled.div`
+  margin-top: 18px;
+  padding: 14px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+`;
+
+const BulletList = styled.ul`
+  margin: 8px 0 0;
+  padding: 0 0 0 18px;
+  color: #7c2d12;
+  font-size: 13.5px;
+  line-height: 1.45;
+`;
+
+const Actions = styled.div`
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
 `;
 
-const SectionLabel = styled.div`
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: #94a3b8;
-  margin-bottom: 8px;
-`;
-
-const Recipient = styled.div`
-  font-size: 13px;
-  color: #334155;
-  padding: 4px 0;
-`;
-
-const StatRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 13px;
-  color: #334155;
-
-  strong {
-    font-weight: 750;
-  }
-`;
+function LeadSection({
+  title,
+  leads,
+}: {
+  title: string;
+  leads: DigestLeadGroup[];
+}) {
+  if (leads.length === 0) return null;
+  return (
+    <div>
+      <SectionLabel>{title}</SectionLabel>
+      {leads.map((lead) => (
+        <Signal key={lead.companyId}>
+          <SignalTop>
+            <span>
+              {lead.roles.length} role{lead.roles.length === 1 ? '' : 's'}
+            </span>
+            <Heat>heat {lead.heatScore}</Heat>
+          </SignalTop>
+          <SignalTitle>{lead.headline}</SignalTitle>
+          <SignalStatus>
+            {lead.roles
+              .map((r) => `${r.title} · ${r.category} · ${r.daysLive}d`)
+              .join(' · ')}
+          </SignalStatus>
+          <Quote>“{lead.insightQuote}”</Quote>
+        </Signal>
+      ))}
+    </div>
+  );
+}
 
 export function DigestPage() {
-  const { data, isLoading, isError } = useDigestQuery();
+  const [kind, setKind] = useState<'daily' | 'weekly'>('daily');
+  const { data, isLoading, isError } = useDigestQuery(kind);
+  const sendMutation = useSendDigestMutation();
 
   return (
     <>
-      <AppHeader title="Daily digest" subtitle={`Scheduled ${data?.scheduledAt ?? '…'}.`} />
+      <AppHeader
+        title="Digest"
+        subtitle={
+          data?.scheduledAt
+            ? `Next ${kind} send ${new Date(data.scheduledAt).toLocaleString(
+                'en-AU',
+                {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  timeZone: 'Australia/Sydney',
+                  timeZoneName: 'short',
+                },
+              )}.`
+            : 'Scheduled …'
+        }
+      />
 
-      {isLoading && <CircularProgress sx={{ mt: 4 }} />}
+      <Tabs
+        value={kind}
+        onChange={(_, value: 'daily' | 'weekly') => setKind(value)}
+        sx={{ mb: 2 }}
+      >
+        <Tab value="daily" label="Daily tipoffs" />
+        <Tab value="weekly" label="Weekly market intel" />
+      </Tabs>
+
+      <Actions>
+        <Button
+          variant="contained"
+          size="small"
+          disabled={sendMutation.isPending}
+          onClick={() => sendMutation.mutate(kind)}
+        >
+          {sendMutation.isPending
+            ? 'Sending…'
+            : `Send ${kind} email to me`}
+        </Button>
+      </Actions>
+
+      {sendMutation.isSuccess && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          Sent to {sendMutation.data.to}
+          {sendMutation.data.previewUrl
+            ? ` · preview: ${sendMutation.data.previewUrl}`
+            : ''}
+        </Alert>
+      )}
+      {sendMutation.isError && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          Failed to send digest email.
+        </Alert>
+      )}
+
+      {isLoading && <CircularProgress sx={{ mt: 2 }} />}
       {isError && (
         <Alert severity="error" sx={{ mt: 2 }}>
           Failed to load digest.
@@ -156,33 +228,87 @@ export function DigestPage() {
       )}
 
       {data && (
-        <Grid>
-          <Card>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-              <div>
-                <CardTitle>Digest preview</CardTitle>
-                <CardSub>Email, CSV, Bullhorn / JobAdder delivery.</CardSub>
-              </div>
-              <Actions>
-                <Button variant="outlined" size="small">
-                  Export CSV
-                </Button>
-                <Button variant="contained" size="small">
-                  Send now
-                </Button>
-              </Actions>
+        <Card>
+          <div>
+            <CardTitle>
+              {kind === 'weekly' ? 'Weekly digest preview' : 'Daily digest preview'}
+            </CardTitle>
+            <CardSub>
+              Tipoffs (hard-to-fill, reopened, softened) lead. Fresh hiring
+              sprees are labelled New & clustered — not sold as heat tipoffs.
+            </CardSub>
+          </div>
+
+          <EmailMeta>
+            <div>
+              <strong>To</strong> {data.preview.to}
             </div>
+            <div>
+              <strong>Subject</strong> {data.preview.subject}
+            </div>
+          </EmailMeta>
 
-            <EmailMeta>
-              <div>
-                <strong>To</strong> {data.preview.to}
-              </div>
-              <div>
-                <strong>Subject</strong> {data.preview.subject}
-              </div>
-            </EmailMeta>
+          {(data.preview.marketIntelBullets?.length ?? 0) > 0 && (
+            <IntelBox>
+              <CardTitle style={{ color: '#9a3412' }}>
+                {data.preview.marketIntel?.periodLabel ?? 'Market intel'}
+              </CardTitle>
+              <BulletList>
+                {data.preview.marketIntelBullets!.map((b) => (
+                  <li key={b}>{b}</li>
+                ))}
+              </BulletList>
+              {data.preview.marketIntel && (
+                <div style={{ marginTop: 12 }}>
+                  {(
+                    [
+                      ["Who's hiring", data.preview.marketIntel.hiring],
+                      [
+                        'Agency activity',
+                        data.preview.marketIntel.agencyActivity,
+                      ],
+                      ['Frozen', data.preview.marketIntel.frozen],
+                      ['Thawed', data.preview.marketIntel.thawed],
+                    ] as const
+                  ).map(([label, rows]) =>
+                    rows.length === 0 ? null : (
+                      <div key={label} style={{ marginTop: 10 }}>
+                        <SignalStatus
+                          style={{ fontWeight: 700, color: '#9a3412' }}
+                        >
+                          {label.toUpperCase()}
+                        </SignalStatus>
+                        {rows.slice(0, 5).map((r) => (
+                          <SignalStatus
+                            key={r.companyId}
+                            style={{ marginTop: 4 }}
+                          >
+                            <strong style={{ color: '#7c2d12' }}>
+                              {r.companyName}
+                            </strong>
+                            {` — ${r.note}`}
+                          </SignalStatus>
+                        ))}
+                      </div>
+                    ),
+                  )}
+                </div>
+              )}
+            </IntelBox>
+          )}
 
-            {data.preview.signals.map((signal) => (
+          <LeadSection
+            title="TIPOFFS"
+            leads={data.preview.tipoffLeads ?? []}
+          />
+          <LeadSection
+            title="NEW & CLUSTERED"
+            leads={data.preview.newClusteredLeads ?? []}
+          />
+
+          {(data.preview.tipoffLeads?.length ?? 0) === 0 &&
+            (data.preview.newClusteredLeads?.length ?? 0) === 0 &&
+            data.preview.signals.map((signal) => (
               <Signal key={signal.id}>
                 <SignalTop>
                   <span>{signal.category}</span>
@@ -195,50 +321,29 @@ export function DigestPage() {
                 <Quote>“{signal.insightQuote}”</Quote>
               </Signal>
             ))}
-          </Card>
 
-          <SideStack>
-            <Card>
-              <SectionLabel>CADENCE</SectionLabel>
-              {data.cadence.map((item) => (
-                <FormControlLabel
-                  key={item.id}
-                  control={<Checkbox checked={item.enabled} readOnly />}
-                  label={item.label}
-                />
+          {(data.preview.pastClientsHiring?.length ?? 0) > 0 && (
+            <div
+              style={{
+                marginTop: 20,
+                borderTop: '1px solid #eef2f7',
+                paddingTop: 14,
+              }}
+            >
+              <CardTitle>Past clients hiring on your patch</CardTitle>
+              <CardSub>From your lapsed-client watchlist.</CardSub>
+              {data.preview.pastClientsHiring!.map((p) => (
+                <SignalStatus key={p.company} style={{ marginTop: 8 }}>
+                  <strong style={{ color: '#0f172a' }}>{p.company}</strong>
+                  {` — ${p.liveRoleCount} live role${
+                    p.liveRoleCount === 1 ? '' : 's'
+                  }`}
+                  {p.sampleTitle ? ` · ${p.sampleTitle}` : ''}
+                </SignalStatus>
               ))}
-            </Card>
-
-            <Card>
-              <SectionLabel>RECIPIENTS</SectionLabel>
-              {data.recipients.map((email) => (
-                <Recipient key={email}>{email}</Recipient>
-              ))}
-              <TextField
-                size="small"
-                placeholder="Add recipient"
-                fullWidth
-                sx={{ mt: 1 }}
-              />
-            </Card>
-
-            <Card>
-              <SectionLabel>LAST 30 DAYS</SectionLabel>
-              <StatRow>
-                <span>Digests delivered</span>
-                <strong>{data.statsLast30Days.digestsDelivered}</strong>
-              </StatRow>
-              <StatRow>
-                <span>Openers copied</span>
-                <strong>{data.statsLast30Days.openersCopied}</strong>
-              </StatRow>
-              <StatRow>
-                <span>Meetings logged</span>
-                <strong>{data.statsLast30Days.meetingsLogged}</strong>
-              </StatRow>
-            </Card>
-          </SideStack>
-        </Grid>
+            </div>
+          )}
+        </Card>
       )}
     </>
   );

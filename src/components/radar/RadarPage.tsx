@@ -13,6 +13,7 @@ import styled from "styled-components";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TriggerCard } from "@/components/radar/TriggerCard";
 import { useRadarQuery } from "@/lib/query/hooks";
+import type { RadarTrigger } from "@/types/api";
 
 const Banner = styled.section`
   background: linear-gradient(135deg, #0f2744 0%, #1e3a5f 55%, #243b66 100%);
@@ -53,10 +54,10 @@ const Status = styled.div`
   padding: 6px 10px;
   border-radius: 999px;
 
-  @media (max-width: 560px) {
+  @media (max-width: 960px) {
     position: static;
     align-self: flex-end;
-    margin-top: 10px;
+    margin-bottom: 10px;
   }
 `;
 
@@ -125,15 +126,57 @@ const List = styled.div`
   gap: 12px;
 `;
 
+const Empty = styled.p`
+  margin: 24px 0;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+`;
+
+function matchesSearch(trigger: RadarTrigger, query: string): boolean {
+  const tokens = query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  const haystack = [
+    trigger.companyName,
+    trigger.jobTitle,
+    trigger.location,
+    trigger.industry,
+    trigger.category,
+    trigger.insightText,
+    ...(Array.isArray(trigger.talkingPoints) ? trigger.talkingPoints : []),
+  ]
+    .filter((part): part is string => Boolean(part))
+    .join(" ")
+    .toLowerCase();
+
+  return tokens.every((token) => haystack.includes(token));
+}
+
 export function RadarPage() {
+  "use no memo";
+
   const [triggerType, setTriggerType] = useState("All triggers");
   const [vertical, setVertical] = useState("All verticals");
+  const [search, setSearch] = useState("");
   const { data, isLoading, isError } = useRadarQuery({ triggerType, vertical });
+
+  const triggers = data?.triggers ?? [];
+  const filteredTriggers = triggers.filter((trigger) =>
+    matchesSearch(trigger, search),
+  );
+  const searchLabel = search.trim();
 
   return (
     <>
       <AppHeader
         title="Radar"
+        searchValue={search}
+        onSearchChange={setSearch}
         subtitle={
           data
             ? `Ranked BD triggers — ${new Date(
@@ -217,14 +260,23 @@ export function RadarPage() {
               />
             ))}
             <Count>
-              {data.triggers.length} of {data.metrics.newTriggersToday} triggers
+              {filteredTriggers.length} of {triggers.length} triggers
+              {searchLabel ? ` matching “${searchLabel}”` : ""}
             </Count>
           </Filters>
 
           <List>
-            {data.triggers.map((trigger) => (
-              <TriggerCard key={trigger.id} trigger={trigger} />
-            ))}
+            {filteredTriggers.length === 0 ? (
+              <Empty>
+                {searchLabel
+                  ? `No triggers match “${searchLabel}”.`
+                  : "No triggers in this filter."}
+              </Empty>
+            ) : (
+              filteredTriggers.map((trigger) => (
+                <TriggerCard key={trigger.id} trigger={trigger} />
+              ))
+            )}
           </List>
         </>
       )}

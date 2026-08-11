@@ -29,7 +29,14 @@ const Tags = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
+`;
+
+const CategoryHint = styled.p`
+  margin: 0 0 8px;
+  color: #64748b;
+  font-size: 12.5px;
+  line-height: 1.4;
 `;
 
 const JobTitle = styled.h3`
@@ -92,6 +99,17 @@ const Footer = styled.div`
   margin-top: 12px;
   color: #94a3b8;
   font-size: 12px;
+`;
+
+const Pitch = styled.p`
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  color: #9a3412;
+  font-size: 13px;
+  line-height: 1.45;
 `;
 
 const UndoHint = styled.span`
@@ -158,6 +176,9 @@ export function TriggerCard({ trigger, compact = false }: TriggerCardProps) {
               />
             )}
           </Tags>
+          {trigger.categoryHint ? (
+            <CategoryHint>{trigger.categoryHint}</CategoryHint>
+          ) : null}
           <JobTitle>{trigger.jobTitle}</JobTitle>
           <Meta>
             {trigger.companyName} · {trigger.location}
@@ -168,9 +189,11 @@ export function TriggerCard({ trigger, compact = false }: TriggerCardProps) {
 
       <Insight>{trigger.insightText}</Insight>
 
+      {trigger.benchmarkPitch ? <Pitch>{trigger.benchmarkPitch}</Pitch> : null}
+
       {!compact && trigger.talkingPoints.length > 0 && (
         <Points>
-          <PointsLabel>TALKING POINTS</PointsLabel>
+          <PointsLabel>WHY REACH OUT</PointsLabel>
           <PointsList>
             {trigger.talkingPoints.map((point) => (
               <li key={point}>{point}</li>
@@ -208,11 +231,13 @@ export function TriggerCard({ trigger, compact = false }: TriggerCardProps) {
       )}
 
       <Footer>
-        {trigger.daysLive}d live · First seen{" "}
+        Live {trigger.daysLive} day{trigger.daysLive === 1 ? "" : "s"} · First
+        seen{" "}
         {new Date(trigger.firstSeenDate).toLocaleDateString("en-AU", {
           day: "numeric",
           month: "short",
           year: "numeric",
+          timeZone: "Australia/Sydney",
         })}
       </Footer>
     </Card>

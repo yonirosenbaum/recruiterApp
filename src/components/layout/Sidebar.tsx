@@ -6,9 +6,11 @@ import {
   ChevronLeft,
   ExpandLess,
   ExpandMore,
+  History,
   Logout,
   MailOutlined,
   MapOutlined,
+  QueryStats,
   Radar as RadarIcon,
   Sensors,
 } from "@mui/icons-material";
@@ -19,7 +21,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import styled from "styled-components";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { useCoverageQuery, useRadarQuery } from "@/lib/query/hooks";
+import {
+  useCoverageQuery,
+  useLapsedClientsQuery,
+  useRadarQuery,
+} from "@/lib/query/hooks";
 import { colors } from "@/theme/theme";
 
 const Shell = styled.aside<{ $collapsed: boolean; $open: boolean }>`
@@ -198,6 +204,7 @@ const CollapseBtn = styled.button`
 const HIRING_SIGNAL_PATHS = [
   "/radar",
   "/digest",
+  "/lapsed",
   "/companies",
   "/coverage",
 ] as const;
@@ -222,8 +229,10 @@ export function Sidebar({
   );
   const [open, setOpen] = useState(underHiringSignals);
   const { data: radar } = useRadarQuery();
+  const { data: lapsed } = useLapsedClientsQuery();
   const { data: coverage } = useCoverageQuery();
   const badgeCount = radar?.metrics.newTriggersToday ?? 0;
+  const lapsedBadge = lapsed?.counts.firing ?? 0;
   const territory = coverage?.sidebarTerritory;
   const isAdmin = user?.role === "SUPER_ADMIN";
 
@@ -239,6 +248,12 @@ export function Sidebar({
       label: "Radar",
       icon: <RadarIcon fontSize="small" />,
       badge: badgeCount,
+    },
+    {
+      href: "/lapsed",
+      label: "Lapsed clients",
+      icon: <History fontSize="small" />,
+      badge: lapsedBadge,
     },
     {
       href: "/digest",
@@ -314,11 +329,20 @@ export function Sidebar({
           })}
         </Collapse>
 
+        <SubLink
+          href="/benchmarks"
+          $active={pathname.startsWith("/benchmarks")}
+          style={{ marginTop: 10, marginLeft: 0 }}
+        >
+          <QueryStats fontSize="small" />
+          {!collapsed && <span style={{ flex: 1 }}>Benchmarks</span>}
+        </SubLink>
+
         {isAdmin && (
           <SubLink
             href="/admin"
             $active={pathname.startsWith("/admin")}
-            style={{ marginTop: 10, marginLeft: 0 }}
+            style={{ marginTop: 4, marginLeft: 0 }}
           >
             <AdminPanelSettings fontSize="small" />
             {!collapsed && <span style={{ flex: 1 }}>Admin</span>}

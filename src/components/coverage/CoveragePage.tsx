@@ -7,7 +7,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Switch,
 } from '@mui/material';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { TerritoryRequestModal } from '@/components/territory/TerritoryRequestModal';
@@ -20,21 +19,12 @@ const Intro = styled.p`
   max-width: 640px;
 `;
 
-const Grid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-
-  @media (max-width: 900px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
 const Card = styled.section`
   background: #fff;
   border: 1px solid #e8edf5;
   border-radius: 14px;
   padding: 18px 20px;
+  max-width: 560px;
 `;
 
 const Title = styled.h2`
@@ -63,51 +53,13 @@ const Body = styled.p`
   line-height: 1.5;
 `;
 
-const SourceRow = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 0;
-  border-top: 1px solid #eef2f7;
-  font-size: 13px;
-
-  &:first-of-type {
-    border-top: 0;
-  }
-`;
-
-const ThresholdRow = styled.div`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 12px;
-  padding: 8px 0;
-  border-top: 1px solid #eef2f7;
-  font-size: 13px;
-
-  &:first-of-type {
-    border-top: 0;
-  }
-
-  strong {
-    color: #0f172a;
-  }
-`;
-
-const ModuleRow = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 6px 0;
-`;
-
 export function CoveragePage() {
   const { data, isLoading, isError } = useCoverageQuery();
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <AppHeader title="Coverage" subtitle="Territory, sources & modules." />
+      <AppHeader title="Coverage" subtitle="Your exclusive territory." />
 
       {isLoading && <CircularProgress sx={{ mt: 4 }} />}
       {isError && (
@@ -119,65 +71,19 @@ export function CoveragePage() {
       {data && (
         <>
           <Intro>{data.tagline}</Intro>
-          <Grid>
-            <Card>
-              <Title>Exclusive slot</Title>
-              <SlotTitle>{data.exclusiveSlot.title}</SlotTitle>
-              <Tags>
-                {data.exclusiveSlot.verticals.map((v) => (
-                  <Chip key={v} size="small" label={v} variant="outlined" />
-                ))}
-              </Tags>
-              <Body>{data.exclusiveSlot.description}</Body>
-              <Button variant="contained" onClick={() => setOpen(true)}>
-                Request a new territory
-              </Button>
-            </Card>
-
-            <Card>
-              <Title>Ingestion sources</Title>
-              {data.ingestionSources.map((source) => (
-                <SourceRow key={source.name}>
-                  <div>
-                    <strong>{source.name}</strong>
-                    <div style={{ color: '#64748b', fontSize: 12 }}>{source.role}</div>
-                  </div>
-                  <span style={{ color: '#64748b' }}>{source.syncedAt}</span>
-                </SourceRow>
+          <Card>
+            <Title>Exclusive slot</Title>
+            <SlotTitle>{data.exclusiveSlot.title}</SlotTitle>
+            <Tags>
+              {data.exclusiveSlot.verticals.map((v) => (
+                <Chip key={v} size="small" label={v} variant="outlined" />
               ))}
-            </Card>
-
-            <Card>
-              <Title>Trigger thresholds</Title>
-              {data.triggerThresholds.map((row) => (
-                <ThresholdRow key={row.name}>
-                  <span>{row.name}</span>
-                  <strong>{row.value}</strong>
-                </ThresholdRow>
-              ))}
-            </Card>
-
-            <Card>
-              <Title>Modules</Title>
-              {data.modules.map((mod) => (
-                <ModuleRow key={mod.id}>
-                  <div>
-                    <div style={{ fontWeight: 650 }}>{mod.name}</div>
-                    {mod.priceLabel && (
-                      <div style={{ color: '#64748b', fontSize: 12 }}>
-                        {mod.priceLabel}
-                      </div>
-                    )}
-                  </div>
-                  {mod.priceLabel && !mod.enabled ? (
-                    <Chip size="small" label={mod.priceLabel} />
-                  ) : (
-                    <Switch checked={mod.enabled} readOnly />
-                  )}
-                </ModuleRow>
-              ))}
-            </Card>
-          </Grid>
+            </Tags>
+            <Body>{data.exclusiveSlot.description}</Body>
+            <Button variant="contained" onClick={() => setOpen(true)}>
+              Request a new territory
+            </Button>
+          </Card>
         </>
       )}
 

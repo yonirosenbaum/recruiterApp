@@ -2,11 +2,18 @@ import { apiFetch } from './client';
 import type {
   AuthSession,
   AuthUser,
+  BenchmarkOptions,
+  BenchmarkResult,
   CompanyDetail,
   CoverageResponse,
   DemoRadarResponse,
   DigestResponse,
+  DigestSendResult,
+  MarketIntelReport,
   LastContacted,
+  LapsedImportReport,
+  LapsedListResponse,
+  PublicBenchmarkListItem,
   RadarResponse,
   TerritoriesOptions,
   TerritoryRequestItem,
@@ -26,12 +33,61 @@ export const endpoints = {
     return apiFetch<RadarResponse>(`/radar${qs ? `?${qs}` : ''}`);
   },
 
-  digest: () => apiFetch<DigestResponse>('/digest'),
+  digest: (kind: 'daily' | 'weekly' = 'daily') =>
+    apiFetch<DigestResponse>(`/digest?kind=${kind}`),
+
+  sendDigest: (kind: 'daily' | 'weekly' = 'daily') =>
+    apiFetch<DigestSendResult>('/digest/send', {
+      method: 'POST',
+      body: JSON.stringify({ kind }),
+    }),
+
+  marketIntel: (params?: { lookbackDays?: number; period?: 'weekly' | 'quarterly' }) => {
+    const search = new URLSearchParams();
+    if (params?.lookbackDays != null) {
+      search.set('lookbackDays', String(params.lookbackDays));
+    }
+    if (params?.period) search.set('period', params.period);
+    const qs = search.toString();
+    return apiFetch<MarketIntelReport>(
+      `/benchmarks/market-intel${qs ? `?${qs}` : ''}`,
+    );
+  },
+
+  lapsedClients: () => apiFetch<LapsedListResponse>('/lapsed-clients'),
+
+  importLapsedClients: (body: {
+    names?: string[];
+    rows?: Array<{ row: number; name: string }>;
+  }) =>
+    apiFetch<LapsedImportReport>('/lapsed-clients/import', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  removeLapsedClient: (id: string) =>
+    apiFetch<{ ok: boolean }>(`/lapsed-clients/${id}`, { method: 'DELETE' }),
+
+  rematchLapsedClient: (id: string) =>
+    apiFetch<{
+      id: string;
+      rawName: string;
+      matchStatus: string;
+      matchNote: string | null;
+      companyId: string | null;
+      companyName: string | null;
+    }>(`/lapsed-clients/${id}/rematch`, { method: 'POST' }),
 
   companies: () =>
     apiFetch<{ companies: CompanyDetail[] }>('/companies'),
 
   company: (id: string) => apiFetch<CompanyDetail>(`/companies/${id}`),
+
+  setCompanyAgency: (id: string, isAgency: boolean) =>
+    apiFetch<CompanyDetail>(`/companies/${id}/agency`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isAgency }),
+    }),
 
   markContacted: (body: {
     companyId: string;
@@ -60,6 +116,38 @@ export const endpoints = {
     }),
 
   coverage: () => apiFetch<CoverageResponse>('/coverage'),
+
+  benchmarkOptions: () => apiFetch<BenchmarkOptions>('/benchmarks/options'),
+
+  benchmarks: (params: {
+    titleQuery: string;
+    areaId: string;
+    verticalId?: string;
+    lookbackDays?: number;
+  }) => {
+    const search = new URLSearchParams();
+    search.set('titleQuery', params.titleQuery);
+    search.set('areaId', params.areaId);
+    if (params.verticalId) search.set('verticalId', params.verticalId);
+    if (params.lookbackDays != null) {
+      search.set('lookbackDays', String(params.lookbackDays));
+    }
+    return apiFetch<BenchmarkResult>(`/benchmarks?${search.toString()}`);
+  },
+
+  benchmarkForJob: (canonicalJobId: string) =>
+    apiFetch<BenchmarkResult>(`/benchmarks/for-job/${canonicalJobId}`),
+
+  publicBenchmarks: (limit = 40) =>
+    apiFetch<PublicBenchmarkListItem[]>(
+      `/benchmarks/public?limit=${limit}`,
+      { auth: false },
+    ),
+
+  publicBenchmark: (slug: string) =>
+    apiFetch<BenchmarkResult>(`/benchmarks/public/${encodeURIComponent(slug)}`, {
+      auth: false,
+    }),
 
   territoryOptions: (scope: TerritoryScope = 'allocated') =>
     apiFetch<TerritoriesOptions>(`/territories/options?scope=${scope}`),

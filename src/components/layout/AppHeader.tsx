@@ -1,7 +1,7 @@
 "use client";
 
-import { NotificationsNone, Search } from "@mui/icons-material";
-import { Avatar, IconButton, InputAdornment, TextField } from "@mui/material";
+import { Search } from "@mui/icons-material";
+import { Avatar } from "@mui/material";
 import styled from "styled-components";
 import { useAuth } from "@/components/auth/AuthProvider";
 
@@ -10,13 +10,13 @@ const Bar = styled.header`
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 28px 8px;
+  padding: 18px 0 8px;
   background: transparent;
 
   @media (max-width: 720px) {
     flex-direction: column;
     align-items: stretch;
-    padding: 14px 14px 8px;
+    padding: 14px 0 8px;
   }
 `;
 
@@ -50,13 +50,61 @@ const Right = styled.div`
   }
 `;
 
+const SearchBox = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 280px;
+  max-width: 100%;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #d0d7e2;
+  background: #fff;
+  color: #94a3b8;
+  cursor: text;
+
+  @media (max-width: 720px) {
+    width: 100%;
+  }
+
+  &:focus-within {
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
+  }
+`;
+
+const SearchInput = styled.input`
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: #0f172a;
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+`;
+
 type AppHeaderProps = {
   title: string;
   subtitle?: string;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+  searchPlaceholder?: string;
 };
 
-export function AppHeader({ title, subtitle }: AppHeaderProps) {
+export function AppHeader({
+  title,
+  subtitle,
+  searchValue = "",
+  onSearchChange,
+  searchPlaceholder = "Search companies or roles",
+}: AppHeaderProps) {
   const { user } = useAuth();
+  const showSearch = typeof onSearchChange === "function";
 
   return (
     <Bar>
@@ -65,29 +113,19 @@ export function AppHeader({ title, subtitle }: AppHeaderProps) {
         {subtitle ? <Subtitle>{subtitle}</Subtitle> : null}
       </Titles>
       <Right>
-        <TextField
-          size="small"
-          placeholder="Search companies or roles"
-          sx={{
-            width: { xs: "100%", sm: 260 },
-            "& .MuiOutlinedInput-root": {
-              borderRadius: 999,
-              background: "#fff",
-            },
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search fontSize="small" />
-                </InputAdornment>
-              ),
-            },
-          }}
-        />
-        <IconButton aria-label="Notifications">
-          <NotificationsNone />
-        </IconButton>
+        {showSearch ? (
+          <SearchBox>
+            <Search fontSize="small" aria-hidden />
+            <SearchInput
+              type="search"
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              autoComplete="off"
+            />
+          </SearchBox>
+        ) : null}
         <Avatar
           sx={{
             width: 36,

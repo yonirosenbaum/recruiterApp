@@ -13,9 +13,11 @@ export type RadarTrigger = {
   companyId: string;
   canonicalJobId: string;
   category: string;
+  categoryHint: string;
   industry: string;
   jobTitle: string;
   companyName: string;
+  isAgency: boolean;
   location: string;
   heatScore: number;
   scoreVersion: number;
@@ -25,6 +27,9 @@ export type RadarTrigger = {
   daysLive: number;
   firstSeenDate: string;
   lastContacted: LastContacted | null;
+  areaId: string | null;
+  areaName: string | null;
+  benchmarkPitch: string | null;
 };
 
 export type RadarResponse = {
@@ -51,6 +56,7 @@ export type RadarResponse = {
 };
 
 export type DigestResponse = {
+  kind: 'daily' | 'weekly';
   scheduledAt: string;
   preview: {
     to: string;
@@ -64,6 +70,15 @@ export type DigestResponse = {
       statusText: string;
       insightQuote: string;
     }>;
+    tipoffLeads?: DigestLeadGroup[];
+    newClusteredLeads?: DigestLeadGroup[];
+    pastClientsHiring?: Array<{
+      company: string;
+      liveRoleCount: number;
+      sampleTitle: string | null;
+    }>;
+    marketIntel?: MarketIntelReport | null;
+    marketIntelBullets?: string[];
   };
   cadence: Array<{ id: string; label: string; enabled: boolean }>;
   recipients: string[];
@@ -74,10 +89,129 @@ export type DigestResponse = {
   };
 };
 
+export type DigestLeadGroup = {
+  companyId: string;
+  company: string;
+  headline: string;
+  insightQuote: string;
+  heatScore: number;
+  section: 'tipoff' | 'new_clustered';
+  roles: Array<{
+    title: string;
+    category: string;
+    daysLive: number;
+  }>;
+};
+
+export type MarketIntelCompanyRow = {
+  companyId: string;
+  companyName: string;
+  liveRoleCount: number;
+  note: string;
+};
+
+export type MarketIntelTtfRow = {
+  title: string;
+  place: string;
+  placeKind: 'area' | 'region';
+  sampleSize: number;
+  medianTtfDays: number;
+};
+
+export type MarketIntelRepostRow = {
+  companyId: string;
+  companyName: string;
+  liveCount: number;
+  repostCount: number;
+  repostRatePercent: number;
+};
+
+export type MarketIntelSalaryMoveRow = {
+  verticalId: string;
+  verticalName: string;
+  recentMedian: number | null;
+  priorMedian: number | null;
+  delta: number | null;
+  recentSample: number;
+  priorSample: number;
+};
+
+export type MarketIntelReport = {
+  generatedAt: string;
+  lookbackDays: number;
+  periodLabel: string;
+  ttfByRolePlace: MarketIntelTtfRow[];
+  repostByEmployer: MarketIntelRepostRow[];
+  salaryMovementByVertical: MarketIntelSalaryMoveRow[];
+  hiring: MarketIntelCompanyRow[];
+  agencyActivity: MarketIntelCompanyRow[];
+  frozen: MarketIntelCompanyRow[];
+  thawed: MarketIntelCompanyRow[];
+};
+
+export type DigestSendResult = {
+  ok: true;
+  kind: 'daily' | 'weekly';
+  to: string;
+  subject: string;
+  previewUrl?: string;
+};
+
+export type ClientMatchStatus = 'MATCHED' | 'UNMATCHED' | 'AMBIGUOUS';
+
+export type LapsedListResponse = {
+  firing: Array<{
+    watchedClientId: string;
+    companyId: string;
+    companyName: string;
+    rawName: string;
+    liveRoleCount: number;
+    sampleJobs: Array<{
+      id: string;
+      title: string;
+      heatScore: number | null;
+    }>;
+  }>;
+  watchlist: Array<{
+    id: string;
+    rawName: string;
+    nameNormalized: string;
+    matchStatus: ClientMatchStatus;
+    matchNote: string | null;
+    companyId: string | null;
+    companyName: string | null;
+    createdAt: string;
+  }>;
+  counts: {
+    total: number;
+    matched: number;
+    unmatched: number;
+    ambiguous: number;
+    firing: number;
+  };
+};
+
+export type LapsedImportReport = {
+  summary: {
+    received: number;
+    added: number;
+    alreadyWatched: number;
+    matched: number;
+    unmatched: number;
+    ambiguous: number;
+    rejected: number;
+  };
+  errors: Array<{ row: number; name: string; message: string }>;
+  unmatchedSample: string[];
+  ambiguousSample: Array<{ name: string; candidates: string[] }>;
+};
+
 export type CompanySummary = {
   id: string;
   name: string;
   location: string;
+  isAgency: boolean;
+  agencyMappedBy: string | null;
   openRoles: number;
   repostRatePercent: number;
   liveCount: number;
@@ -94,7 +228,56 @@ export type CompanyDetail = CompanySummary & {
     category: string;
     jobTitle: string;
     heatScore: number;
+    canonicalJobId: string;
+    daysLive: number;
+    benchmarkPitch: string | null;
   }>;
+};
+
+export type BenchmarkSalary = {
+  mid: number | null;
+  mean: number | null;
+  min: number | null;
+  max: number | null;
+  p25: number | null;
+  p75: number | null;
+  sampleSize: number;
+};
+
+export type BenchmarkResult = {
+  available: boolean;
+  slug: string;
+  titleQuery: string;
+  areaId: string;
+  areaName: string;
+  verticalId: string | null;
+  verticalName: string | null;
+  lookbackDays: number;
+  sampleSize: number;
+  openRoleCount: number;
+  marketMedianTtfDays: number | null;
+  salary: BenchmarkSalary;
+  yourOpenDays: number | null;
+  yourOpenCount: number;
+  pitchLine: string | null;
+  pitchParagraph: string | null;
+};
+
+export type BenchmarkOptions = {
+  areas: Array<{ id: string; name: string; state: string }>;
+  verticals: Array<{ id: string; name: string }>;
+  topTitles: Array<{ title: string; count: number }>;
+  defaultLookbackDays: number;
+  minSample: number;
+};
+
+export type PublicBenchmarkListItem = {
+  slug: string;
+  titleQuery: string;
+  areaId: string;
+  areaName: string;
+  sampleSize: number;
+  marketMedianTtfDays: number | null;
 };
 
 export type CoverageResponse = {

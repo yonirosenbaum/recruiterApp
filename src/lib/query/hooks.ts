@@ -8,11 +8,26 @@ import { useAuth } from '@/components/auth/AuthProvider';
 export const queryKeys = {
   radar: (filters?: { triggerType?: string; vertical?: string }) =>
     ['radar', filters] as const,
-  digest: (userId?: string) => ['digest', userId] as const,
+  digest: (userId?: string, kind: 'daily' | 'weekly' = 'daily') =>
+    ['digest', userId, kind] as const,
+  marketIntel: (
+    userId?: string,
+    period: 'weekly' | 'quarterly' = 'weekly',
+  ) => ['benchmarks', 'market-intel', userId, period] as const,
+  lapsed: (userId?: string) => ['lapsed', userId] as const,
   companies: (userId?: string) => ['companies', userId] as const,
   company: (id: string, userId?: string) =>
     ['companies', userId, id] as const,
   coverage: ['coverage'] as const,
+  benchmarkOptions: ['benchmarks', 'options'] as const,
+  benchmarks: (params: {
+    titleQuery: string;
+    areaId: string;
+    verticalId?: string;
+    lookbackDays?: number;
+  }) => ['benchmarks', 'query', params] as const,
+  publicBenchmarks: ['benchmarks', 'public'] as const,
+  publicBenchmark: (slug: string) => ['benchmarks', 'public', slug] as const,
   territoryOptions: (scope: TerritoryScope) =>
     ['territories', 'options', scope] as const,
   myTerritoryRequests: ['territories', 'requests', 'mine'] as const,
@@ -33,12 +48,74 @@ export function useRadarQuery(filters?: {
   });
 }
 
-export function useDigestQuery() {
+export function useDigestQuery(kind: 'daily' | 'weekly' = 'daily') {
   const { user } = useAuth();
   return useQuery({
-    queryKey: queryKeys.digest(user?.id),
-    queryFn: () => endpoints.digest(),
+    queryKey: queryKeys.digest(user?.id, kind),
+    queryFn: () => endpoints.digest(kind),
     enabled: Boolean(user),
+  });
+}
+
+export function useSendDigestMutation() {
+  return useMutation({
+    mutationFn: (kind: 'daily' | 'weekly') => endpoints.sendDigest(kind),
+  });
+}
+
+export function useMarketIntelQuery(period: 'weekly' | 'quarterly' = 'weekly') {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.marketIntel(user?.id, period),
+    queryFn: () =>
+      endpoints.marketIntel({
+        period,
+        lookbackDays: period === 'quarterly' ? 90 : undefined,
+      }),
+    enabled: Boolean(user),
+  });
+}
+
+export function useLapsedClientsQuery() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.lapsed(user?.id),
+    queryFn: () => endpoints.lapsedClients(),
+    enabled: Boolean(user),
+  });
+}
+
+export function useImportLapsedClientsMutation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: endpoints.importLapsedClients,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.lapsed(user?.id) });
+      void qc.invalidateQueries({ queryKey: ['digest'] });
+    },
+  });
+}
+
+export function useRemoveLapsedClientMutation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: endpoints.removeLapsedClient,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.lapsed(user?.id) });
+    },
+  });
+}
+
+export function useRematchLapsedClientMutation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: endpoints.rematchLapsedClient,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.lapsed(user?.id) });
+    },
   });
 }
 
@@ -60,10 +137,71 @@ export function useCompanyQuery(id: string) {
   });
 }
 
+export function useSetCompanyAgencyMutation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: ({ id, isAgency }: { id: string; isAgency: boolean }) =>
+      endpoints.setCompanyAgency(id, isAgency),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: queryKeys.companies(user?.id) });
+      void qc.invalidateQueries({
+        queryKey: queryKeys.company(vars.id, user?.id),
+      });
+      void qc.invalidateQueries({ queryKey: ['benchmarks'] });
+      void qc.invalidateQueries({ queryKey: ['digest'] });
+    },
+  });
+}
+
 export function useCoverageQuery() {
   return useQuery({
     queryKey: queryKeys.coverage,
     queryFn: () => endpoints.coverage(),
+  });
+}
+
+export function useBenchmarkOptionsQuery() {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.benchmarkOptions,
+    queryFn: () => endpoints.benchmarkOptions(),
+    enabled: Boolean(user),
+  });
+}
+
+export function useBenchmarksQuery(
+  params: {
+    titleQuery: string;
+    areaId: string;
+    verticalId?: string;
+    lookbackDays?: number;
+  } | null,
+) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.benchmarks(
+      params ?? { titleQuery: '', areaId: '' },
+    ),
+    queryFn: () => endpoints.benchmarks(params!),
+    enabled: Boolean(
+      user && params?.titleQuery.trim() && params?.areaId,
+    ),
+  });
+}
+
+export function usePublicBenchmarksQuery() {
+  return useQuery({
+    queryKey: queryKeys.publicBenchmarks,
+    queryFn: () => endpoints.publicBenchmarks(),
+  });
+}
+
+export function usePublicBenchmarkQuery(slug: string) {
+  return useQuery({
+    queryKey: queryKeys.publicBenchmark(slug),
+    queryFn: () => endpoints.publicBenchmark(slug),
+    enabled: Boolean(slug),
   });
 }
 
@@ -112,7 +250,7 @@ export function useMarkContactedMutation() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['radar'] });
       void qc.invalidateQueries({ queryKey: ['companies'] });
-      void qc.invalidateQueries({ queryKey: queryKeys.digest() });
+      void qc.invalidateQueries({ queryKey: ['digest'] });
     },
   });
 }
@@ -124,7 +262,7 @@ export function useUndoOutreachMutation() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['radar'] });
       void qc.invalidateQueries({ queryKey: ['companies'] });
-      void qc.invalidateQueries({ queryKey: queryKeys.digest() });
+      void qc.invalidateQueries({ queryKey: ['digest'] });
     },
   });
 }

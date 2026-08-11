@@ -1,6 +1,13 @@
 "use client";
 
-import { Alert, Button, Chip, CircularProgress } from "@mui/material";
+import {
+  Alert,
+  Button,
+  Chip,
+  CircularProgress,
+  FormControlLabel,
+  Switch,
+} from "@mui/material";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { AppHeader } from "@/components/layout/AppHeader";
@@ -9,6 +16,7 @@ import {
   useCompaniesQuery,
   useCompanyQuery,
   useMarkContactedMutation,
+  useSetCompanyAgencyMutation,
   useUndoOutreachMutation,
 } from "@/lib/query/hooks";
 import type { LastContacted } from "@/types/api";
@@ -175,6 +183,32 @@ const TriggerRow = styled.div`
   padding: 10px 12px;
 `;
 
+function AgencyToggle({
+  companyId,
+  isAgency,
+}: {
+  companyId: string;
+  isAgency: boolean;
+}) {
+  const setAgency = useSetCompanyAgencyMutation();
+  return (
+    <FormControlLabel
+      sx={{ mt: 1, ml: 0 }}
+      control={
+        <Switch
+          size="small"
+          checked={isAgency}
+          disabled={setAgency.isPending}
+          onChange={(_, checked) => {
+            void setAgency.mutateAsync({ id: companyId, isAgency: checked });
+          }}
+        />
+      }
+      label={isAgency ? "Staffing agency" : "End-employer"}
+    />
+  );
+}
+
 function MarkContactedControls({
   companyId,
   lastContacted,
@@ -272,7 +306,16 @@ export function CompaniesPage() {
               >
                 <RowTop>
                   <div>
-                    <Name>{company.name}</Name>
+                    <Name>
+                      {company.name}
+                      {company.isAgency ? (
+                        <Chip
+                          size="small"
+                          label="Agency"
+                          sx={{ ml: 1, height: 20, fontWeight: 700 }}
+                        />
+                      ) : null}
+                    </Name>
                     <Meta>
                       {company.location} · {company.openRoles} open roles ·{" "}
                       {company.repostRatePercent}% repost ·{" "}
@@ -309,6 +352,8 @@ export function CompaniesPage() {
                     Resolved aliases: {detailQuery.data.aliases.join(", ")}
                   </Aliases>
                 )}
+
+                <AgencyToggle companyId={detailQuery.data.id} isAgency={detailQuery.data.isAgency} />
 
                 <Activity>
                   <ActivityText>
@@ -358,20 +403,34 @@ export function CompaniesPage() {
                 <Triggers>
                   {detailQuery.data.activeTriggers.map((t) => (
                     <TriggerRow key={t.id}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                        }}
-                      >
-                        <Chip
-                          size="small"
-                          label={t.category}
-                          color="primary"
-                          variant="outlined"
-                        />
-                        <span style={{ fontWeight: 650 }}>{t.jobTitle}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          <Chip
+                            size="small"
+                            label={t.category}
+                            color="primary"
+                            variant="outlined"
+                          />
+                          <span style={{ fontWeight: 650 }}>{t.jobTitle}</span>
+                        </div>
+                        {t.benchmarkPitch ? (
+                          <div
+                            style={{
+                              marginTop: 6,
+                              color: "#9a3412",
+                              fontSize: 12.5,
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            {t.benchmarkPitch}
+                          </div>
+                        ) : null}
                       </div>
                       <strong>{t.heatScore}</strong>
                     </TriggerRow>

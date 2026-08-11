@@ -7,13 +7,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { endpoints, type TerritoryScope } from '@/lib/api/endpoints';
-import type { TerritoryRequestStatus } from '@/types/api';
+import type { DigestKind, TerritoryRequestStatus } from '@/types/api';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 export const queryKeys = {
   radar: (filters?: { triggerType?: string; vertical?: string }) =>
     ['radar', filters] as const,
-  digest: (userId?: string, kind: 'daily' | 'weekly' = 'daily') =>
+  digest: (userId?: string, kind: DigestKind = 'daily') =>
     ['digest', userId, kind] as const,
   marketIntel: (
     userId?: string,
@@ -34,7 +34,8 @@ export const queryKeys = {
   publicBenchmarks: (areaId?: string) =>
     ['benchmarks', 'public', areaId ?? 'all'] as const,
   publicBenchmark: (slug: string) => ['benchmarks', 'public', slug] as const,
-  publicTipoffReport: ['benchmarks', 'report'] as const,
+  publicTipoffReport: (editionKey?: string | null) =>
+    ['benchmarks', 'report', editionKey ?? 'live'] as const,
   territoryOptions: (scope: TerritoryScope) =>
     ['territories', 'options', scope] as const,
   myTerritoryRequests: ['territories', 'requests', 'mine'] as const,
@@ -56,7 +57,7 @@ export function useRadarQuery(filters?: {
   });
 }
 
-export function useDigestQuery(kind: 'daily' | 'weekly' = 'daily') {
+export function useDigestQuery(kind: DigestKind = 'daily') {
   const { user } = useAuth();
   return useQuery({
     queryKey: queryKeys.digest(user?.id, kind),
@@ -67,7 +68,7 @@ export function useDigestQuery(kind: 'daily' | 'weekly' = 'daily') {
 
 export function useSendDigestMutation() {
   return useMutation({
-    mutationFn: (kind: 'daily' | 'weekly') => endpoints.sendDigest(kind),
+    mutationFn: (kind: DigestKind) => endpoints.sendDigest(kind),
   });
 }
 
@@ -217,10 +218,13 @@ export function usePublicBenchmarkQuery(slug: string) {
   });
 }
 
-export function usePublicTipoffReportQuery() {
+export function usePublicTipoffReportQuery(editionKey?: string | null) {
   return useQuery({
-    queryKey: queryKeys.publicTipoffReport,
-    queryFn: () => endpoints.publicTipoffReport(),
+    queryKey: queryKeys.publicTipoffReport(editionKey),
+    queryFn: () =>
+      editionKey
+        ? endpoints.publicTipoffReportEdition(editionKey)
+        : endpoints.publicTipoffReport(),
   });
 }
 

@@ -8,9 +8,11 @@ import type {
   CoverageResponse,
   DemoRadarResponse,
   DigestResponse,
+  DigestKind,
   DigestSendResult,
   MarketIntelReport,
   PublicTipoffReport,
+  PublicTipoffReportEditionMeta,
   LastContacted,
   LapsedImportReport,
   LapsedListResponse,
@@ -35,10 +37,10 @@ export const endpoints = {
     return apiFetch<RadarResponse>(`/radar${qs ? `?${qs}` : ''}`);
   },
 
-  digest: (kind: 'daily' | 'weekly' = 'daily') =>
+  digest: (kind: DigestKind = 'daily') =>
     apiFetch<DigestResponse>(`/digest?kind=${kind}`),
 
-  sendDigest: (kind: 'daily' | 'weekly' = 'daily') =>
+  sendDigest: (kind: DigestKind = 'daily') =>
     apiFetch<DigestSendResult>('/digest/send', {
       method: 'POST',
       body: JSON.stringify({ kind }),
@@ -157,6 +159,18 @@ export const endpoints = {
 
   publicTipoffReport: () =>
     apiFetch<PublicTipoffReport>('/benchmarks/report', { auth: false }),
+
+  publicTipoffReportEditions: () =>
+    apiFetch<PublicTipoffReportEditionMeta[]>(
+      '/benchmarks/report/editions',
+      { auth: false },
+    ),
+
+  publicTipoffReportEdition: (editionKey: string) =>
+    apiFetch<PublicTipoffReport>(
+      `/benchmarks/report/editions/${encodeURIComponent(editionKey)}`,
+      { auth: false },
+    ),
 
   territoryOptions: (scope: TerritoryScope = 'allocated') =>
     apiFetch<TerritoriesOptions>(`/territories/options?scope=${scope}`),

@@ -376,15 +376,19 @@ function editionDate(iso?: string) {
   }).format(iso ? new Date(iso) : new Date());
 }
 
+function endEmployers(rows: MarketIntelCompanyRow[]) {
+  return rows.filter((r) => r.isAgency !== true);
+}
+
 function hasModules(data: MarketIntelReport) {
   return (
     data.ttfByRolePlace.length > 0 ||
     data.repostByEmployer.length > 0 ||
     data.salaryMovementByVertical.length > 0 ||
-    data.hiring.length > 0 ||
+    endEmployers(data.hiring).length > 0 ||
     data.agencyActivity.length > 0 ||
-    data.frozen.length > 0 ||
-    data.thawed.length > 0
+    endEmployers(data.frozen).length > 0 ||
+    endEmployers(data.thawed).length > 0
   );
 }
 
@@ -410,8 +414,14 @@ function CompanyList({
   );
 }
 
-export function TipoffReportPage({ embedded = false }: { embedded?: boolean }) {
-  const { data, isLoading, isError } = usePublicTipoffReportQuery();
+export function TipoffReportPage({
+  embedded = false,
+  edition,
+}: {
+  embedded?: boolean;
+  edition?: string;
+}) {
+  const { data, isLoading, isError } = usePublicTipoffReportQuery(edition);
 
   useEffect(() => {
     if (!data) return;
@@ -443,7 +453,10 @@ export function TipoffReportPage({ embedded = false }: { embedded?: boolean }) {
 
         <KickerRow>
           <span>Public job-ad intelligence</span>
-          <span>{data?.editionLabel ?? "Quarterly edition"}</span>
+          <span>
+            {data?.frozen ? "Frozen edition · " : ""}
+            {data?.editionLabel ?? "Quarterly edition"}
+          </span>
         </KickerRow>
 
         <Masthead>Tipoff Daily</Masthead>
@@ -468,12 +481,18 @@ export function TipoffReportPage({ embedded = false }: { embedded?: boolean }) {
 }
 
 function ReportBody({ data }: { data: PublicTipoffReport }) {
+  const hiring = endEmployers(data.hiring);
+  const frozen = endEmployers(data.frozen);
+  const thawed = endEmployers(data.thawed);
   const modules = hasModules(data);
 
   return (
     <>
       <Hero>
-        <Eyebrow>Quarterly Tipoff Report · {data.editionLabel}</Eyebrow>
+        <Eyebrow>
+          Quarterly Tipoff Report · {data.editionLabel}
+          {data.frozen ? " · archived snapshot" : ""}
+        </Eyebrow>
         <Headline>
           The Australian hiring market, measured from the ads employers
           published.
@@ -505,16 +524,16 @@ function ReportBody({ data }: { data: PublicTipoffReport }) {
         </Empty>
       )}
 
-      {(data.hiring.length > 0 || data.agencyActivity.length > 0) && (
+      {(hiring.length > 0 || data.agencyActivity.length > 0) && (
         <Section>
           <TwoCol>
-            {data.hiring.length > 0 && (
+            {hiring.length > 0 && (
               <div>
                 <SectionLabel>Who&apos;s hiring</SectionLabel>
                 <SectionLede>
                   End-employers with live roles. Staffing firms are excluded.
                 </SectionLede>
-                <CompanyList rows={data.hiring} countLabel="open" />
+                <CompanyList rows={hiring} countLabel="open" />
               </div>
             )}
             {data.agencyActivity.length > 0 && (
@@ -644,25 +663,25 @@ function ReportBody({ data }: { data: PublicTipoffReport }) {
         </Section>
       )}
 
-      {(data.frozen.length > 0 || data.thawed.length > 0) && (
+      {(frozen.length > 0 || thawed.length > 0) && (
         <Section>
           <TwoCol>
-            {data.frozen.length > 0 && (
+            {frozen.length > 0 && (
               <div>
                 <SectionLabel>Frozen</SectionLabel>
                 <SectionLede>
                   End-employers that went quiet after closing roles.
                 </SectionLede>
-                <CompanyList rows={data.frozen} countLabel="closed" />
+                <CompanyList rows={frozen} countLabel="closed" />
               </div>
             )}
-            {data.thawed.length > 0 && (
+            {thawed.length > 0 && (
               <div>
                 <SectionLabel>Thawed</SectionLabel>
                 <SectionLede>
                   Fresh listings after a quiet spell — hiring restarting.
                 </SectionLede>
-                <CompanyList rows={data.thawed} countLabel="open" />
+                <CompanyList rows={thawed} countLabel="open" />
               </div>
             )}
           </TwoCol>

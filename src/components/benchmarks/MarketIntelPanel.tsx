@@ -80,18 +80,25 @@ function formatAud(n: number | null): string {
   return `${sign}$${Math.round(n).toLocaleString("en-AU")}`;
 }
 
+function endEmployers(rows: MarketIntelCompanyRow[]) {
+  return rows.filter((r) => r.isAgency !== true);
+}
+
 function CompanyBlock({
   title,
   rows,
+  employersOnly = false,
 }: {
   title: string;
   rows: MarketIntelCompanyRow[];
+  employersOnly?: boolean;
 }) {
-  if (rows && rows.length === 0) return null;
+  const visible = employersOnly ? endEmployers(rows) : rows;
+  if (visible.length === 0) return null;
   return (
     <Block>
       <BlockTitle>{title}</BlockTitle>
-      {rows.slice(0, 5).map((r) => (
+      {visible.slice(0, 5).map((r) => (
         <Row key={r.companyId}>
           <strong>{r.companyName}</strong>
           <div style={{ color: "#64748b", fontSize: 12 }}>{r.note}</div>
@@ -108,7 +115,7 @@ function reportToMarkdown(report: MarketIntelReport): string {
   const lines = [
     `# ${report.periodLabel}`,
     ``,
-    `Generated ${new Date(report.generatedAt).toLocaleString("en-AU")} · ${report.lookbackDays}d lookback`,
+    `Generated ${new Date(report.generatedAt).toLocaleString("en-AU")} · ${report.lookbackDays}d lookback · ${report.scope === "national" ? "nationwide" : "your patch"}`,
     ``,
     ...section(
       "Median days-to-fill (role × place)",
@@ -151,6 +158,74 @@ function reportToMarkdown(report: MarketIntelReport): string {
   return lines.join("\n");
 }
 
+function hasAnything(data: MarketIntelReport): boolean {
+  return (
+    data.ttfByRolePlace.length > 0 ||
+    data.repostByEmployer.length > 0 ||
+    data.salaryMovementByVertical.length > 0 ||
+    data.hiring.length > 0 ||
+    data.agencyActivity.length > 0 ||
+    data.frozen.length > 0 ||
+    data.thawed.length > 0
+  );
+}
+
+function IntelGrid({ data }: { data: MarketIntelReport }) {
+  return (
+    <Grid>
+      {data.ttfByRolePlace.length > 0 && (
+        <Block>
+          <BlockTitle>TTF BY ROLE × PLACE</BlockTitle>
+          {data.ttfByRolePlace.slice(0, 6).map((r) => (
+            <Row key={`${r.placeKind}-${r.place}-${r.title}`}>
+              <strong>{r.title}</strong> in {r.place}
+              <div style={{ color: "#64748b", fontSize: 12 }}>
+                {r.medianTtfDays}d median · {r.sampleSize} closed · {r.placeKind}
+              </div>
+            </Row>
+          ))}
+        </Block>
+      )}
+
+      {data.repostByEmployer.length > 0 && (
+        <Block>
+          <BlockTitle>REPOST BY EMPLOYER</BlockTitle>
+          {data.repostByEmployer.slice(0, 6).map((r) => (
+            <Row key={r.companyId}>
+              <strong>{r.companyName}</strong>
+              <div style={{ color: "#64748b", fontSize: 12 }}>
+                {r.repostRatePercent}% · {r.repostCount}/{r.liveCount} live
+              </div>
+            </Row>
+          ))}
+        </Block>
+      )}
+
+      {data.salaryMovementByVertical.length > 0 && (
+        <Block>
+          <BlockTitle>SALARY MOVEMENT BY VERTICAL</BlockTitle>
+          {data.salaryMovementByVertical.slice(0, 6).map((r) => (
+            <Row key={r.verticalId}>
+              <strong>{r.verticalName}</strong>
+              <div style={{ color: "#64748b", fontSize: 12 }}>
+                {formatAud(r.delta)} vs prior half · now{" "}
+                {r.recentMedian != null
+                  ? `$${Math.round(r.recentMedian).toLocaleString("en-AU")}`
+                  : "—"}
+              </div>
+            </Row>
+          ))}
+        </Block>
+      )}
+
+      <CompanyBlock title="WHO'S HIRING" rows={data.hiring} employersOnly />
+      <CompanyBlock title="AGENCY ACTIVITY" rows={data.agencyActivity} />
+      <CompanyBlock title="FROZEN" rows={data.frozen} employersOnly />
+      <CompanyBlock title="THAWED" rows={data.thawed} employersOnly />
+    </Grid>
+  );
+}
+
 export function MarketIntelPanel({
   period,
   onPeriodChange,
@@ -158,12 +233,11 @@ export function MarketIntelPanel({
   period: "weekly" | "quarterly";
   onPeriodChange: (period: "weekly" | "quarterly") => void;
 }) {
-  const { data, isLoading, isError } = useMarketIntelQuery("weekly", {
-    enabled: period === "weekly",
-  });
-  const sendWeekly = useSendDigestMutation();
+  const { data, isLoading, isError } = useMarketIntelQuery(period);
+  const sendDigest = useSendDigestMutation();
+  const sendKind = period === "quarterly" ? "quarterly" : "weekly";
 
-  const onDownloadWeekly = () => {
+  const onDownload = () => {
     if (!data) return;
     const blob = new Blob([reportToMarkdown(data)], {
       type: "text/markdown;charset=utf-8",
@@ -171,27 +245,20 @@ export function MarketIntelPanel({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "tipoff-weekly-market-intel.md";
+    a.download =
+      period === "quarterly"
+        ? "tipoff-quarterly-patch.md"
+        : "tipoff-weekly-market-intel.md";
     a.click();
     URL.revokeObjectURL(url);
   };
-
-  const hasAnything =
-    data &&
-    (data.ttfByRolePlace.length > 0 ||
-      data.repostByEmployer.length > 0 ||
-      data.salaryMovementByVertical.length > 0 ||
-      data.hiring.length > 0 ||
-      data.agencyActivity.length > 0 ||
-      data.frozen.length > 0 ||
-      data.thawed.length > 0);
 
   return (
     <Panel>
       <Title>Market intel</Title>
       <Sub>
         {period === "quarterly"
-          ? "The public quarterly edition — open it to share, or save a PDF."
+          ? "Your 90-day patch edition — distinct from the public national Tipoff Report. End-employer hiring only under Who's hiring; agency ads are listed separately."
           : "End-employer hiring only under Who's hiring. Agency ads are listed separately as competitor activity. Stats only appear when the sample is real (n≥10 rates, n≥20 salary, n≥10 closed for TTF)."}
       </Sub>
 
@@ -204,114 +271,72 @@ export function MarketIntelPanel({
         <Tab value="quarterly" label="Quarterly Tipoff Report" />
       </Tabs>
 
-      {period === "quarterly" && (
-        <Actions style={{ marginTop: 0 }}>
-          <Button href="/report" variant="contained" size="small">
-            Open report
-          </Button>
-          <Button
-            href="/report?print=1"
-            target="_blank"
-            rel="noreferrer"
-            variant="outlined"
-            size="small"
-          >
-            Download PDF
-          </Button>
-        </Actions>
-      )}
-
-      {period === "weekly" && isLoading && <CircularProgress size={28} />}
-      {period === "weekly" && isError && (
+      {isLoading && <CircularProgress size={28} />}
+      {isError && (
         <Alert severity="error">Failed to load market intel.</Alert>
       )}
 
-      {period === "weekly" && data && !hasAnything && (
+      {data && !hasAnything(data) && (
         <Empty>
           Nothing solid enough to show yet for this lookback — modules appear as
           closed roles and live volume mature.
         </Empty>
       )}
 
-      {period === "weekly" && data && hasAnything && (
+      {data && hasAnything(data) && (
         <>
           <Sub style={{ marginTop: 0 }}>
             {data.periodLabel} · {data.lookbackDays}d lookback
+            {data.scope === "allocation" ? " · your patch" : ""}
           </Sub>
-          <Grid>
-            {data.ttfByRolePlace.length > 0 && (
-              <Block>
-                <BlockTitle>TTF BY ROLE × PLACE</BlockTitle>
-                {data.ttfByRolePlace.slice(0, 6).map((r) => (
-                  <Row key={`${r.placeKind}-${r.place}-${r.title}`}>
-                    <strong>{r.title}</strong> in {r.place}
-                    <div style={{ color: "#64748b", fontSize: 12 }}>
-                      {r.medianTtfDays}d median · {r.sampleSize} closed ·{" "}
-                      {r.placeKind}
-                    </div>
-                  </Row>
-                ))}
-              </Block>
-            )}
+          <IntelGrid data={data} />
+        </>
+      )}
 
-            {data.repostByEmployer.length > 0 && (
-              <Block>
-                <BlockTitle>REPOST BY EMPLOYER</BlockTitle>
-                {data.repostByEmployer.slice(0, 6).map((r) => (
-                  <Row key={r.companyId}>
-                    <strong>{r.companyName}</strong>
-                    <div style={{ color: "#64748b", fontSize: 12 }}>
-                      {r.repostRatePercent}% · {r.repostCount}/{r.liveCount}{" "}
-                      live
-                    </div>
-                  </Row>
-                ))}
-              </Block>
-            )}
-
-            {data.salaryMovementByVertical.length > 0 && (
-              <Block>
-                <BlockTitle>SALARY MOVEMENT BY VERTICAL</BlockTitle>
-                {data.salaryMovementByVertical.slice(0, 6).map((r) => (
-                  <Row key={r.verticalId}>
-                    <strong>{r.verticalName}</strong>
-                    <div style={{ color: "#64748b", fontSize: 12 }}>
-                      {formatAud(r.delta)} vs prior half · now{" "}
-                      {r.recentMedian != null
-                        ? `$${Math.round(r.recentMedian).toLocaleString("en-AU")}`
-                        : "—"}
-                    </div>
-                  </Row>
-                ))}
-              </Block>
-            )}
-
-            <CompanyBlock title="WHO'S HIRING" rows={data.hiring} />
-            <CompanyBlock title="AGENCY ACTIVITY" rows={data.agencyActivity} />
-            <CompanyBlock title="FROZEN" rows={data.frozen} />
-            <CompanyBlock title="THAWED" rows={data.thawed} />
-          </Grid>
-
-          <Actions>
-            <Button variant="outlined" size="small" onClick={onDownloadWeekly}>
-              Download intel .md
+      <Actions>
+        {period === "quarterly" && (
+          <>
+            <Button href="/report" variant="outlined" size="small">
+              Open national report
             </Button>
             <Button
-              variant="contained"
+              href="/report?print=1"
+              target="_blank"
+              rel="noreferrer"
+              variant="outlined"
               size="small"
-              disabled={sendWeekly.isPending}
-              onClick={() => sendWeekly.mutate("weekly")}
             >
-              {sendWeekly.isPending ? "Sending…" : "Email weekly digest to me"}
+              Download national PDF
             </Button>
-          </Actions>
+          </>
+        )}
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={!data}
+          onClick={onDownload}
+        >
+          Download intel .md
+        </Button>
+        <Button
+          variant="contained"
+          size="small"
+          disabled={sendDigest.isPending}
+          onClick={() => sendDigest.mutate(sendKind)}
+        >
+          {sendDigest.isPending
+            ? "Sending…"
+            : period === "quarterly"
+              ? "Email my quarterly report"
+              : "Email weekly digest to me"}
+        </Button>
+      </Actions>
 
-          {sendWeekly.isSuccess && sendWeekly.variables === "weekly" && (
-            <Alert severity="success" sx={{ mt: 1.5 }}>
-              Weekly digest sent to {sendWeekly.data.to}
-            </Alert>
-          )}
-        </>
+      {sendDigest.isSuccess && sendDigest.variables === sendKind && (
+        <Alert severity="success" sx={{ mt: 1.5 }}>
+          {period === "quarterly" ? "Quarterly report" : "Weekly digest"} sent to{" "}
+          {sendDigest.data.to}
+        </Alert>
       )}
     </Panel>
   );

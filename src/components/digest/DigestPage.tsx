@@ -14,7 +14,7 @@ import {
   useDigestQuery,
   useSendDigestMutation,
 } from '@/lib/query/hooks';
-import type { DigestLeadGroup } from '@/types/api';
+import type { DigestKind, DigestLeadGroup } from '@/types/api';
 
 const Card = styled.section`
   background: #fff;
@@ -157,7 +157,7 @@ function LeadSection({
 }
 
 export function DigestPage() {
-  const [kind, setKind] = useState<'daily' | 'weekly'>('daily');
+  const [kind, setKind] = useState<DigestKind>('daily');
   const { data, isLoading, isError } = useDigestQuery(kind);
   const sendMutation = useSendDigestMutation();
 
@@ -186,11 +186,12 @@ export function DigestPage() {
 
       <Tabs
         value={kind}
-        onChange={(_, value: 'daily' | 'weekly') => setKind(value)}
+        onChange={(_, value: DigestKind) => setKind(value)}
         sx={{ mb: 2 }}
       >
         <Tab value="daily" label="Daily tipoffs" />
         <Tab value="weekly" label="Weekly market intel" />
+        <Tab value="quarterly" label="Quarterly report" />
       </Tabs>
 
       <Actions>
@@ -231,11 +232,16 @@ export function DigestPage() {
         <Card>
           <div>
             <CardTitle>
-              {kind === 'weekly' ? 'Weekly digest preview' : 'Daily digest preview'}
+              {kind === 'quarterly'
+                ? 'Quarterly patch report preview'
+                : kind === 'weekly'
+                  ? 'Weekly digest preview'
+                  : 'Daily digest preview'}
             </CardTitle>
             <CardSub>
-              Tipoffs (hard-to-fill, reopened, softened) lead. Fresh hiring
-              sprees are labelled New & clustered — not sold as heat tipoffs.
+              {kind === 'quarterly'
+                ? 'Your 90-day allocation-scoped edition. The public national page is a separate artefact at /report.'
+                : 'Tipoffs (hard-to-fill, reopened, softened) lead. Fresh hiring sprees are labelled New & clustered — not sold as heat tipoffs.'}
             </CardSub>
           </div>
 
@@ -297,16 +303,21 @@ export function DigestPage() {
             </IntelBox>
           )}
 
-          <LeadSection
-            title="TIPOFFS"
-            leads={data.preview.tipoffLeads ?? []}
-          />
-          <LeadSection
-            title="NEW & CLUSTERED"
-            leads={data.preview.newClusteredLeads ?? []}
-          />
+          {kind !== 'quarterly' && (
+            <>
+              <LeadSection
+                title="TIPOFFS"
+                leads={data.preview.tipoffLeads ?? []}
+              />
+              <LeadSection
+                title="NEW & CLUSTERED"
+                leads={data.preview.newClusteredLeads ?? []}
+              />
+            </>
+          )}
 
-          {(data.preview.tipoffLeads?.length ?? 0) === 0 &&
+          {kind !== 'quarterly' &&
+            (data.preview.tipoffLeads?.length ?? 0) === 0 &&
             (data.preview.newClusteredLeads?.length ?? 0) === 0 &&
             data.preview.signals.map((signal) => (
               <Signal key={signal.id}>

@@ -55,8 +55,10 @@ export type RadarResponse = {
   triggers: RadarTrigger[];
 };
 
+export type DigestKind = 'daily' | 'weekly' | 'quarterly';
+
 export type DigestResponse = {
-  kind: 'daily' | 'weekly';
+  kind: DigestKind;
   scheduledAt: string;
   preview: {
     to: string;
@@ -108,6 +110,7 @@ export type MarketIntelCompanyRow = {
   companyName: string;
   liveRoleCount: number;
   note: string;
+  isAgency?: boolean;
 };
 
 export type MarketIntelTtfRow = {
@@ -141,6 +144,8 @@ export type MarketIntelReport = {
   generatedAt: string;
   lookbackDays: number;
   periodLabel: string;
+  /** Patch-scoped subscriber intel vs nationwide public edition. */
+  scope?: 'allocation' | 'national';
   ttfByRolePlace: MarketIntelTtfRow[];
   repostByEmployer: MarketIntelRepostRow[];
   salaryMovementByVertical: MarketIntelSalaryMoveRow[];
@@ -152,7 +157,7 @@ export type MarketIntelReport = {
 
 export type DigestSendResult = {
   ok: true;
-  kind: 'daily' | 'weekly';
+  kind: DigestKind;
   to: string;
   subject: string;
   previewUrl?: string;
@@ -291,7 +296,16 @@ export type PublicBenchmarkIndex = {
 export type PublicTipoffReport = MarketIntelReport & {
   headlines: string[];
   editionLabel: string;
+  editionKey?: string;
+  frozen?: boolean;
   featuredBenchmarks: PublicBenchmarkListItem[];
+};
+
+export type PublicTipoffReportEditionMeta = {
+  editionKey: string;
+  editionLabel: string;
+  generatedAt: string;
+  lookbackDays: number;
 };
 
 export type CoverageResponse = {

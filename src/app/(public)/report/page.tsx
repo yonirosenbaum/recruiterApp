@@ -26,10 +26,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PublicTipoffReportPage() {
+export default async function PublicTipoffReportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ edition?: string; print?: string }>;
+}) {
+  const { edition } = await searchParams;
   return (
     <div className={`${display.variable} ${body.variable}`}>
-      <TipoffReportPage />
+      <TipoffReportPage edition={edition} />
     </div>
   );
 }

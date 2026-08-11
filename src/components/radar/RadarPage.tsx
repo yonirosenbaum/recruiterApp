@@ -9,6 +9,7 @@ import {
   Select,
 } from "@mui/material";
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TriggerCard } from "@/components/radar/TriggerCard";
@@ -163,11 +164,15 @@ export function RadarPage() {
   const [triggerType, setTriggerType] = useState("All triggers");
   const [vertical, setVertical] = useState("All verticals");
   const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const companyFilter = searchParams.get("company");
   const { data, isLoading, isError } = useRadarQuery({ triggerType, vertical });
 
   const triggers = data?.triggers ?? [];
-  const filteredTriggers = triggers.filter((trigger) =>
-    matchesSearch(trigger, search),
+  const filteredTriggers = triggers.filter(
+    (trigger) =>
+      matchesSearch(trigger, search) &&
+      (!companyFilter || trigger.companyId === companyFilter),
   );
   const searchLabel = search.trim();
 

@@ -80,6 +80,12 @@ export function CoveragePage() {
               ))}
             </Tags>
             <Body>{data.exclusiveSlot.description}</Body>
+            {data.integrity?.takeawaySuppression && (
+              <Body>
+                <strong>Integrity. </strong>
+                {data.integrity.takeawaySuppression}
+              </Body>
+            )}
             <Button variant="contained" onClick={() => setOpen(true)}>
               Request a new territory
             </Button>

@@ -2,8 +2,14 @@
 
 import styled from "styled-components";
 import { Alert, Button, CircularProgress, Tab, Tabs } from "@mui/material";
-import { useMarketIntelQuery, useSendDigestMutation } from "@/lib/query/hooks";
-import type { MarketIntelCompanyRow, MarketIntelReport } from "@/types/api";
+import {
+  useMarketIntelQuery,
+  useSendDigestMutation,
+} from "@/lib/query/hooks";
+import type {
+  MarketIntelCompanyRow,
+  MarketIntelReport,
+} from "@/types/api";
 
 const Panel = styled.section`
   background: #fff;
@@ -233,32 +239,32 @@ export function MarketIntelPanel({
   period: "weekly" | "quarterly";
   onPeriodChange: (period: "weekly" | "quarterly") => void;
 }) {
-  const { data, isLoading, isError } = useMarketIntelQuery(period);
+  const weekly = useMarketIntelQuery("weekly", { enabled: period === "weekly" });
   const sendDigest = useSendDigestMutation();
   const sendKind = period === "quarterly" ? "quarterly" : "weekly";
+  const isLoading = period === "weekly" && weekly.isLoading;
+  const isError = period === "weekly" && weekly.isError;
 
   const onDownload = () => {
-    if (!data) return;
-    const blob = new Blob([reportToMarkdown(data)], {
-      type: "text/markdown;charset=utf-8",
-    });
+    if (!weekly.data) return;
+    const text = reportToMarkdown(weekly.data);
+    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download =
-      period === "quarterly"
-        ? "tipoff-quarterly-patch.md"
-        : "tipoff-weekly-market-intel.md";
+    a.download = "tipoff-weekly-market-intel.md";
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  const weeklyEmpty = weekly.data && !hasAnything(weekly.data);
 
   return (
     <Panel>
       <Title>Market intel</Title>
       <Sub>
         {period === "quarterly"
-          ? "Your 90-day patch edition — distinct from the public national Tipoff Report. End-employer hiring only under Who's hiring; agency ads are listed separately."
+          ? "The quarterly Tipoff Report is the national picture by vertical. It opens as its own newspaper page — not inline here."
           : "End-employer hiring only under Who's hiring. Agency ads are listed separately as competitor activity. Stats only appear when the sample is real (n≥10 rates, n≥20 salary, n≥10 closed for TTF)."}
       </Sub>
 
@@ -276,48 +282,60 @@ export function MarketIntelPanel({
         <Alert severity="error">Failed to load market intel.</Alert>
       )}
 
-      {data && !hasAnything(data) && (
+      {period === "weekly" && weeklyEmpty && (
         <Empty>
           Nothing solid enough to show yet for this lookback — modules appear as
           closed roles and live volume mature.
         </Empty>
       )}
 
-      {data && hasAnything(data) && (
+      {period === "weekly" && weekly.data && hasAnything(weekly.data) && (
         <>
           <Sub style={{ marginTop: 0 }}>
-            {data.periodLabel} · {data.lookbackDays}d lookback
-            {data.scope === "allocation" ? " · your patch" : ""}
+            {weekly.data.periodLabel} · {weekly.data.lookbackDays}d lookback
+            {weekly.data.scope === "allocation" ? " · your patch" : ""}
           </Sub>
-          <IntelGrid data={data} />
+          <IntelGrid data={weekly.data} />
         </>
+      )}
+
+      {period === "quarterly" && (
+        <Empty>
+          Open the quarterly edition for one chapter per vertical, or the
+          national edition for the aggregate newspaper page.
+        </Empty>
       )}
 
       <Actions>
         {period === "quarterly" && (
           <>
-            <Button href="/report" variant="outlined" size="small">
-              Open national report
+            <Button href="/report/quarterly" variant="contained" size="small">
+              Open quarterly report
             </Button>
             <Button
-              href="/report?print=1"
+              href="/report/quarterly?print=1"
               target="_blank"
               rel="noreferrer"
               variant="outlined"
               size="small"
             >
-              Download national PDF
+              Download quarterly PDF
+            </Button>
+            <Button href="/report" variant="outlined" size="small">
+              Open national edition
             </Button>
           </>
         )}
-        <Button
-          variant="outlined"
-          size="small"
-          disabled={!data}
-          onClick={onDownload}
-        >
-          Download intel .md
-        </Button>
+        {period === "weekly" && (
+          <Button
+            variant="outlined"
+            size="small"
+            disabled={!weekly.data}
+            onClick={onDownload}
+          >
+            Download intel .md
+          </Button>
+        )}
         <Button
           variant="contained"
           size="small"

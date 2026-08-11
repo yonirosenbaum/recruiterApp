@@ -142,7 +142,9 @@ export default function PublicBenchmarksExplorePage() {
         <Lead>
           Median time-to-fill by role title across Australia, or a single city.
           No account required. For the national picture, read the{' '}
-          <Link href="/report">quarterly Tipoff Report</Link>.
+          <Link href="/report">Tipoff Report</Link>
+          {' '}or the{' '}
+          <Link href="/report/quarterly">quarterly edition</Link>.
         </Lead>
 
         <Filters>

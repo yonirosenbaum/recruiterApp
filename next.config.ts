@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
   compiler: {
     styledComponents: true,
   },
+  async redirects() {
+    return [
+      {
+        source: "/lapsed",
+        destination: "/watchlist",
+        permanent: false,
+      },
+    ];
+  },
   async rewrites() {
     const apiUrl = process.env.API_URL ?? "http://localhost:3001";
     return [

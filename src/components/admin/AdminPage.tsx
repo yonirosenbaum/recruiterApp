@@ -31,6 +31,8 @@ import {
   useCreateScrapeLocationPolicyMutation,
   useUpdateScrapeLocationPolicyMutation,
   useDeleteScrapeLocationPolicyMutation,
+  useCompaniesQuery,
+  useSetUserAgencyCompanyMutation,
 } from '@/lib/query/hooks';
 import { AdminCoverageTable } from '@/components/admin/AdminCoverageTable';
 
@@ -103,6 +105,9 @@ export function AdminPage() {
   const createPolicy = useCreateScrapeLocationPolicyMutation();
   const updatePolicy = useUpdateScrapeLocationPolicyMutation();
   const deletePolicy = useDeleteScrapeLocationPolicyMutation();
+  const companiesQuery = useCompaniesQuery();
+  const setAgencyCompany = useSetUserAgencyCompanyMutation();
+  const [agencyPick, setAgencyPick] = useState<Record<string, string>>({});
 
   const [assignUserId, setAssignUserId] = useState('');
   const [selection, setSelection] = useState<TerritorySelection>({
@@ -255,6 +260,56 @@ export function AdminPage() {
               <Meta>
                 {user.email} · {user.agencyName}
               </Meta>
+              <Meta>
+                Linked agency company:{' '}
+                {user.agencyCompanyName
+                  ? `${user.agencyCompanyName}`
+                  : 'none (no takeaway suppression)'}
+              </Meta>
+              <Actions>
+                <FormControl size="small" sx={{ minWidth: 220 }}>
+                  <InputLabel id={`agency-co-${user.id}`}>
+                    Agency company
+                  </InputLabel>
+                  <Select
+                    labelId={`agency-co-${user.id}`}
+                    label="Agency company"
+                    value={agencyPick[user.id] ?? user.agencyCompanyId ?? ''}
+                    onChange={(e) =>
+                      setAgencyPick((prev) => ({
+                        ...prev,
+                        [user.id]: e.target.value,
+                      }))
+                    }
+                  >
+                    <MenuItem value="">
+                      <em>Unlinked</em>
+                    </MenuItem>
+                    {(companiesQuery.data?.companies ?? [])
+                      .filter((c) => c.isAgency)
+                      .map((c) => (
+                        <MenuItem key={c.id} value={c.id}>
+                          {c.name}
+                        </MenuItem>
+                      ))}
+                  </Select>
+                </FormControl>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={setAgencyCompany.isPending}
+                  onClick={() =>
+                    void setAgencyCompany.mutateAsync({
+                      userId: user.id,
+                      companyId:
+                        (agencyPick[user.id] ?? user.agencyCompanyId ?? '') ||
+                        null,
+                    })
+                  }
+                >
+                  Save link
+                </Button>
+              </Actions>
               <Meta>
                 Allocations:{' '}
                 {user.allocations.length === 0

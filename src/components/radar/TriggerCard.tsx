@@ -1,15 +1,11 @@
 "use client";
 
-import { Button, Chip } from "@mui/material";
-import { useEffect, useState } from "react";
+import { Chip } from "@mui/material";
 import styled from "styled-components";
 import { HeatGauge } from "@/components/common/HeatGauge";
+import { OutreachActions } from "@/components/common/OutreachActions";
 import { formatContactedLabel } from "@/lib/format-contacted";
-import {
-  useMarkContactedMutation,
-  useUndoOutreachMutation,
-} from "@/lib/query/hooks";
-import type { LastContacted, RadarTrigger } from "@/types/api";
+import type { RadarTrigger } from "@/types/api";
 
 const Card = styled.article<{ $contacted?: boolean }>`
   background: ${({ $contacted }) => ($contacted ? "#f8fafc" : "#fff")};
@@ -116,48 +112,13 @@ const Pitch = styled.p`
   line-height: 1.45;
 `;
 
-const UndoHint = styled.span`
-  font-size: 12px;
-  color: #64748b;
-`;
-
 type TriggerCardProps = {
   trigger: RadarTrigger;
   compact?: boolean;
 };
 
 export function TriggerCard({ trigger, compact = false }: TriggerCardProps) {
-  const markContacted = useMarkContactedMutation();
-  const undoOutreach = useUndoOutreachMutation();
-  const [pendingUndoId, setPendingUndoId] = useState<string | null>(null);
-  const [optimisticContacted, setOptimisticContacted] =
-    useState<LastContacted | null>(null);
-
-  const lastContacted = optimisticContacted ?? trigger.lastContacted;
-
-  useEffect(() => {
-    if (!pendingUndoId) return;
-    const timer = window.setTimeout(() => setPendingUndoId(null), 8000);
-    return () => window.clearTimeout(timer);
-  }, [pendingUndoId]);
-
-  const onMarkContacted = async () => {
-    const result = await markContacted.mutateAsync({
-      companyId: trigger.companyId,
-      canonicalJobId: trigger.canonicalJobId,
-      hiringSignalId: trigger.id,
-    });
-    setOptimisticContacted(result.lastContacted);
-    setPendingUndoId(result.event.id);
-  };
-
-  const onUndo = async () => {
-    if (!pendingUndoId) return;
-    const id = pendingUndoId;
-    setPendingUndoId(null);
-    await undoOutreach.mutateAsync(id);
-    setOptimisticContacted(null);
-  };
+  const lastContacted = trigger.lastContacted;
 
   return (
     <Card $contacted={Boolean(lastContacted)}>
@@ -208,31 +169,14 @@ export function TriggerCard({ trigger, compact = false }: TriggerCardProps) {
         </Points>
       )}
 
-      {!compact && (
+      {!compact && !lastContacted && (
         <Actions>
-          {!lastContacted && (
-            <Button
-              variant="contained"
-              size="small"
-              onClick={() => void onMarkContacted()}
-              disabled={markContacted.isPending || undoOutreach.isPending}
-            >
-              Mark contacted
-            </Button>
-          )}
-          {pendingUndoId && (
-            <>
-              <Button
-                variant="text"
-                size="small"
-                onClick={() => void onUndo()}
-                disabled={undoOutreach.isPending}
-              >
-                Undo
-              </Button>
-              <UndoHint>Mis-tap? Undo for a few seconds</UndoHint>
-            </>
-          )}
+          <OutreachActions
+            companyId={trigger.companyId}
+            canonicalJobId={trigger.canonicalJobId}
+            hiringSignalId={trigger.id}
+            modes={["called", "not_relevant"]}
+          />
         </Actions>
       )}
 

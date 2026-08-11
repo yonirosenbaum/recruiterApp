@@ -205,6 +205,7 @@ const HIRING_SIGNAL_PATHS = [
   "/radar",
   "/digest",
   "/lapsed",
+  "/watchlist",
   "/companies",
   "/coverage",
 ] as const;
@@ -250,8 +251,8 @@ export function Sidebar({
       badge: badgeCount,
     },
     {
-      href: "/lapsed",
-      label: "Lapsed clients",
+      href: "/watchlist",
+      label: "Watchlist",
       icon: <History fontSize="small" />,
       badge: lapsedBadge,
     },

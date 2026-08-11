@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import styled from "styled-components";
-import { usePublicTipoffReportQuery } from "@/lib/query/hooks";
+import {
+  usePublicQuarterlyReportQuery,
+  usePublicTipoffReportQuery,
+} from "@/lib/query/hooks";
 import type {
   MarketIntelCompanyRow,
   MarketIntelReport,
+  PublicQuarterlyReport,
   PublicTipoffReport,
 } from "@/types/api";
 
@@ -383,7 +387,7 @@ function endEmployers(rows: MarketIntelCompanyRow[]) {
 function hasModules(data: MarketIntelReport) {
   return (
     data.ttfByRolePlace.length > 0 ||
-    data.repostByEmployer.length > 0 ||
+    data.repostByEmployer?.length > 0 ||
     data.salaryMovementByVertical.length > 0 ||
     endEmployers(data.hiring).length > 0 ||
     data.agencyActivity.length > 0 ||
@@ -414,31 +418,44 @@ function CompanyList({
   );
 }
 
-export function TipoffReportPage({
-  embedded = false,
-  edition,
-}: {
-  embedded?: boolean;
-  edition?: string;
-}) {
-  const { data, isLoading, isError } = usePublicTipoffReportQuery(edition);
-
+function usePrintWhenReady(ready: boolean) {
   useEffect(() => {
-    if (!data) return;
+    if (!ready) return;
     const print =
       typeof window !== "undefined" &&
       new URLSearchParams(window.location.search).get("print") === "1";
     if (!print) return;
     const t = window.setTimeout(() => window.print(), 400);
     return () => window.clearTimeout(t);
-  }, [data]);
+  }, [ready]);
+}
 
+function NewspaperFrame({
+  embedded = false,
+  kickerRight,
+  generatedAt,
+  lookbackDays,
+  isLoading,
+  isError,
+  extraNav,
+  children,
+}: {
+  embedded?: boolean;
+  kickerRight: string;
+  generatedAt?: string;
+  lookbackDays?: number;
+  isLoading: boolean;
+  isError: boolean;
+  extraNav?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <Page $embedded={embedded}>
       <Shell $embedded={embedded}>
         <Nav>
           {embedded ? <span /> : <Link href="/">Tipoff Daily</Link>}
           <NavLinks>
+            {extraNav}
             <PrintBtn type="button" onClick={() => window.print()}>
               Print
             </PrintBtn>
@@ -453,19 +470,18 @@ export function TipoffReportPage({
 
         <KickerRow>
           <span>Public job-ad intelligence</span>
-          <span>
-            {data?.frozen ? "Frozen edition · " : ""}
-            {data?.editionLabel ?? "Quarterly edition"}
-          </span>
+          <span>{kickerRight}</span>
         </KickerRow>
 
         <Masthead>Tipoff Daily</Masthead>
 
         <Folio>
           <FolioLeft>Australia</FolioLeft>
-          <FolioCenter>{editionDate(data?.generatedAt)}</FolioCenter>
+          <FolioCenter>{editionDate(generatedAt)}</FolioCenter>
           <FolioRight>
-            {data ? `${data.lookbackDays}-day lookback` : "90-day lookback"}
+            {lookbackDays != null
+              ? `${lookbackDays}-day lookback`
+              : "90-day lookback"}
           </FolioRight>
         </Folio>
 
@@ -474,9 +490,186 @@ export function TipoffReportPage({
           <Status>This edition could not be loaded. Try again shortly.</Status>
         )}
 
-        {data && <ReportBody data={data} />}
+        {children}
       </Shell>
     </Page>
+  );
+}
+
+export function TipoffReportPage({ embedded = false }: { embedded?: boolean }) {
+  const { data, isLoading, isError } = usePublicTipoffReportQuery();
+  usePrintWhenReady(Boolean(data));
+
+  return (
+    <NewspaperFrame
+      embedded={embedded}
+      kickerRight={data?.editionLabel ?? "National edition"}
+      generatedAt={data?.generatedAt}
+      lookbackDays={data?.lookbackDays}
+      isLoading={isLoading}
+      isError={isError}
+      extraNav={
+        !embedded ? <Link href="/report/quarterly">Quarterly edition</Link> : null
+      }
+    >
+      {data && <ReportBody data={data} />}
+    </NewspaperFrame>
+  );
+}
+
+export function QuarterlyReportPage({
+  embedded = false,
+  edition,
+}: {
+  embedded?: boolean;
+  edition?: string;
+}) {
+  const { data, isLoading, isError } = usePublicQuarterlyReportQuery(edition);
+  usePrintWhenReady(Boolean(data));
+
+  return (
+    <NewspaperFrame
+      embedded={embedded}
+      kickerRight={data?.editionLabel ?? "Quarterly edition"}
+      generatedAt={data?.generatedAt}
+      lookbackDays={data?.lookbackDays}
+      isLoading={isLoading}
+      isError={isError}
+      extraNav={
+        !embedded ? <Link href="/report">National edition</Link> : null
+      }
+    >
+      {data && <QuarterlyReportBody data={data} />}
+    </NewspaperFrame>
+  );
+}
+
+function VerticalChapter({
+  verticalName,
+  report,
+}: {
+  verticalName: string;
+  report: MarketIntelReport;
+}) {
+  const hiring = endEmployers(report.hiring);
+  const frozen = endEmployers(report.frozen);
+  const thawed = endEmployers(report.thawed);
+  if (!hasModules(report)) return null;
+  return (
+    <Section>
+      <Eyebrow style={{ marginBottom: 8 }}>{verticalName}</Eyebrow>
+      {(hiring.length > 0 || report.agencyActivity.length > 0) && (
+        <TwoCol>
+          {hiring.length > 0 && (
+            <div>
+              <SectionLabel>Who&apos;s hiring</SectionLabel>
+              <SectionLede>
+                End-employers with live roles. Staffing firms are excluded.
+              </SectionLede>
+              <CompanyList rows={hiring} countLabel="open" />
+            </div>
+          )}
+          {report.agencyActivity.length > 0 && (
+            <div>
+              <SectionLabel>Agency activity</SectionLabel>
+              <SectionLede>
+                Recruitment firms advertising on public boards — competitor
+                volume, not client hiring.
+              </SectionLede>
+              <CompanyList rows={report.agencyActivity} countLabel="live ads" />
+            </div>
+          )}
+        </TwoCol>
+      )}
+
+      {report.ttfByRolePlace.length > 0 && (
+        <>
+          <SectionLabel>Median days-to-fill</SectionLabel>
+          <SectionLede>
+            Closed public ads, role × place. City rows open the live benchmark
+            slice.
+          </SectionLede>
+          {report.ttfByRolePlace.map((r) => {
+            const body = (
+              <>
+                <RowName>
+                  {r.title}{" "}
+                  <span style={{ fontWeight: 400 }}>in {r.place}</span>
+                </RowName>
+                <RowMeta>
+                  <Stat>{r.medianTtfDays}d</Stat> median · {r.sampleSize} closed
+                  {r.placeKind === "region" ? " · region" : ""}
+                  {r.slug ? " · open benchmark →" : ""}
+                </RowMeta>
+              </>
+            );
+            return (
+              <Row key={`${r.placeKind}-${r.place}-${r.title}`}>
+                {r.slug ? (
+                  <BenchLink href={`/benchmarks/${r.slug}`}>{body}</BenchLink>
+                ) : (
+                  body
+                )}
+              </Row>
+            );
+          })}
+        </>
+      )}
+
+      {report.repostByEmployer.length > 0 && (
+        <>
+          <SectionLabel>Repost rates by employer</SectionLabel>
+          {report.repostByEmployer.map((r) => (
+            <Row key={r.companyId}>
+              <RowName>{r.companyName}</RowName>
+              <RowMeta>
+                <Stat>{r.repostRatePercent}%</Stat> · {r.repostCount}/
+                {r.liveCount} live
+              </RowMeta>
+            </Row>
+          ))}
+        </>
+      )}
+
+      {report.salaryMovementByVertical.length > 0 && (
+        <>
+          <SectionLabel>Salary movement</SectionLabel>
+          {report.salaryMovementByVertical.map((r) => (
+            <Row key={r.verticalId}>
+              <RowName>{r.verticalName}</RowName>
+              <RowMeta>
+                Now{" "}
+                {r.recentMedian != null
+                  ? `$${Math.round(r.recentMedian).toLocaleString("en-AU")}`
+                  : "n/a"}{" "}
+                · prior{" "}
+                {r.priorMedian != null
+                  ? `$${Math.round(r.priorMedian).toLocaleString("en-AU")}`
+                  : "n/a"}{" "}
+                · <Stat>{formatAud(r.delta)}</Stat>
+              </RowMeta>
+            </Row>
+          ))}
+        </>
+      )}
+
+      {(frozen.length > 0 || thawed.length > 0) && (
+        <TwoCol>
+          {frozen.length > 0 && (
+            <div>
+              <SectionLabel>Frozen</SectionLabel>
+              <CompanyList rows={frozen} countLabel="closed" />
+            </div>
+          )}
+          {thawed.length > 0 && (
+            <div>
+              <SectionLabel>Thawed</SectionLabel>
+              <CompanyList rows={thawed} countLabel="open" />
+            </div>
+          )}
+        </TwoCol>
+      )}
+    </Section>
   );
 }
 
@@ -489,10 +682,7 @@ function ReportBody({ data }: { data: PublicTipoffReport }) {
   return (
     <>
       <Hero>
-        <Eyebrow>
-          Quarterly Tipoff Report · {data.editionLabel}
-          {data.frozen ? " · archived snapshot" : ""}
-        </Eyebrow>
+        <Eyebrow>National Tipoff Report · {data.editionLabel}</Eyebrow>
         <Headline>
           The Australian hiring market, measured from the ads employers
           published.
@@ -543,7 +733,10 @@ function ReportBody({ data }: { data: PublicTipoffReport }) {
                   Recruitment firms advertising on public boards — competitor
                   volume, not client hiring.
                 </SectionLede>
-                <CompanyList rows={data.agencyActivity} countLabel="live ads" />
+                <CompanyList
+                  rows={data.agencyActivity}
+                  countLabel="live ads"
+                />
               </div>
             )}
           </TwoCol>
@@ -581,41 +774,6 @@ function ReportBody({ data }: { data: PublicTipoffReport }) {
               </Row>
             );
           })}
-        </Section>
-      )}
-
-      {data.featuredBenchmarks.length > 0 && (
-        <Section>
-          <SectionLabel>Featured fill-time slices</SectionLabel>
-          <SectionLede>
-            Public benchmarks, ranked by sample. Share a city × title page, or{" "}
-            <Link href="/benchmarks/explore">browse the full index</Link>.
-          </SectionLede>
-          {data.featuredBenchmarks.map((row) => (
-            <Row key={row.slug}>
-              <BenchLink href={`/benchmarks/${row.slug}`}>
-                <RowName>
-                  {row.titleQuery}{" "}
-                  <span style={{ fontWeight: 400 }}>in {row.areaName}</span>
-                </RowName>
-                <RowMeta>
-                  <Stat>
-                    {row.marketMedianTtfDays != null
-                      ? `${row.marketMedianTtfDays}d median`
-                      : "Open now"}
-                  </Stat>
-                  {row.sampleSize > 0 ? ` · ${row.sampleSize} closed` : ""}
-                  {(row.openRoleCount ?? 0) > 0
-                    ? ` · ${row.openRoleCount} open`
-                    : ""}
-                  {(row.salaryRoleCount ?? 0) > 0
-                    ? ` · ${row.salaryRoleCount} roles with salary`
-                    : ""}{" "}
-                  · open benchmark →
-                </RowMeta>
-              </BenchLink>
-            </Row>
-          ))}
         </Section>
       )}
 
@@ -688,6 +846,135 @@ function ReportBody({ data }: { data: PublicTipoffReport }) {
         </Section>
       )}
 
+      {data.featuredBenchmarks.length > 0 && (
+        <Section>
+          <SectionLabel>Featured fill-time slices</SectionLabel>
+          <SectionLede>
+            Public benchmarks, ranked by sample. Share a city × title page, or{" "}
+            <Link href="/benchmarks/explore">browse the full index</Link>.
+          </SectionLede>
+          {data.featuredBenchmarks.map((row) => (
+            <Row key={row.slug}>
+              <BenchLink href={`/benchmarks/${row.slug}`}>
+                <RowName>
+                  {row.titleQuery}{" "}
+                  <span style={{ fontWeight: 400 }}>in {row.areaName}</span>
+                </RowName>
+                <RowMeta>
+                  <Stat>
+                    {row.marketMedianTtfDays != null
+                      ? `${row.marketMedianTtfDays}d median`
+                      : "Open now"}
+                  </Stat>
+                  {row.sampleSize > 0 ? ` · ${row.sampleSize} closed` : ""}
+                  {(row.openRoleCount ?? 0) > 0
+                    ? ` · ${row.openRoleCount} open`
+                    : ""}
+                  {(row.salaryRoleCount ?? 0) > 0
+                    ? ` · ${row.salaryRoleCount} roles with salary`
+                    : ""}{" "}
+                  · open benchmark →
+                </RowMeta>
+              </BenchLink>
+            </Row>
+          ))}
+        </Section>
+      )}
+
+      <ReportFooter lookbackDays={data.lookbackDays} />
+    </>
+  );
+}
+
+function QuarterlyReportBody({ data }: { data: PublicQuarterlyReport }) {
+  const modules = data.verticals.some((section) => hasModules(section.report));
+
+  return (
+    <>
+      <Hero>
+        <Eyebrow>
+          Quarterly Tipoff Report · {data.editionLabel}
+          {data.frozen ? " · archived snapshot" : ""}
+        </Eyebrow>
+        <Headline>
+          The Australian hiring market, measured from the ads employers
+          published.
+        </Headline>
+        <Deck>
+          The national edition, by vertical, for this quarter. End-employer
+          hiring is listed separately from agency ads. Fill times and salary
+          movement only appear when the sample is real.
+        </Deck>
+        <Byline>
+          {data.periodLabel} · Generated {editionDate(data.generatedAt)} ·
+          Public ads only
+        </Byline>
+      </Hero>
+
+      {data.headlines.length > 0 && (
+        <Headlines>
+          {data.headlines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </Headlines>
+      )}
+
+      {!modules && (
+        <Empty>
+          This edition is still gathering closed-role sample. Modules appear as
+          volume matures — n≥10 for rates and fill times, n≥20 for salary.
+        </Empty>
+      )}
+
+      {data.verticals.map((section) => (
+        <VerticalChapter
+          key={section.verticalId}
+          verticalName={section.verticalName}
+          report={section.report}
+        />
+      ))}
+
+      {data.featuredBenchmarks.length > 0 && (
+        <Section>
+          <SectionLabel>Featured fill-time slices</SectionLabel>
+          <SectionLede>
+            Public benchmarks, ranked by sample. Share a city × title page, or{" "}
+            <Link href="/benchmarks/explore">browse the full index</Link>.
+          </SectionLede>
+          {data.featuredBenchmarks.map((row) => (
+            <Row key={row.slug}>
+              <BenchLink href={`/benchmarks/${row.slug}`}>
+                <RowName>
+                  {row.titleQuery}{" "}
+                  <span style={{ fontWeight: 400 }}>in {row.areaName}</span>
+                </RowName>
+                <RowMeta>
+                  {row.marketMedianTtfDays != null
+                    ? `${row.marketMedianTtfDays}d median`
+                    : "median pending"}{" "}
+                  · {row.sampleSize} closed
+                  {(row.openRoleCount ?? 0) > 0
+                    ? ` · ${row.openRoleCount} open now`
+                    : ""}
+                  {(row.salaryRoleCount ?? 0) > 0
+                    ? ` · ${row.salaryRoleCount} roles with salary`
+                    : ""}{" "}
+                  · open benchmark →
+                </RowMeta>
+              </BenchLink>
+            </Row>
+          ))}
+        </Section>
+      )}
+
+      <ReportFooter lookbackDays={data.lookbackDays} />
+    </>
+  );
+}
+
+function ReportFooter({ lookbackDays }: { lookbackDays: number }) {
+  return (
+    <>
       <Method>
         <div>
           <h3>How to read this</h3>
@@ -702,9 +989,9 @@ function ReportBody({ data }: { data: PublicTipoffReport }) {
           <h3>Where the data comes from</h3>
           <p>
             Public job ads from aggregators and employer career pages over the
-            last {data.lookbackDays} days. No scraped personal contacts — just
-            roles employers already published. Territory-scoped tipoffs stay
-            behind a claimed slot.
+            last {lookbackDays} days. No scraped personal contacts — just roles
+            employers already published. Territory-scoped tipoffs stay behind a
+            claimed slot.
           </p>
         </div>
       </Method>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import styled from 'styled-components';
 import {
   Alert,
@@ -10,6 +11,7 @@ import {
   Tabs,
 } from '@mui/material';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { OutreachActions } from '@/components/common/OutreachActions';
 import {
   useDigestQuery,
   useSendDigestMutation,
@@ -233,15 +235,15 @@ export function DigestPage() {
           <div>
             <CardTitle>
               {kind === 'quarterly'
-                ? 'Quarterly patch report preview'
+                ? 'Quarterly report preview'
                 : kind === 'weekly'
                   ? 'Weekly digest preview'
                   : 'Daily digest preview'}
             </CardTitle>
             <CardSub>
               {kind === 'quarterly'
-                ? 'Your 90-day allocation-scoped edition. The public national page is a separate artefact at /report.'
-                : 'Tipoffs (hard-to-fill, reopened, softened) lead. Fresh hiring sprees are labelled New & clustered — not sold as heat tipoffs.'}
+                ? 'The email is a short note with a button to the public quarterly report.'
+                : 'Watchlist sits above tipoffs every send, even on quiet weeks. Tipoffs (hard-to-fill, reopened, softened) follow. Fresh hiring sprees are labelled New & clustered — not sold as heat tipoffs.'}
             </CardSub>
           </div>
 
@@ -254,7 +256,128 @@ export function DigestPage() {
             </div>
           </EmailMeta>
 
-          {(data.preview.marketIntelBullets?.length ?? 0) > 0 && (
+          {kind === 'quarterly' && (
+            <div style={{ marginTop: 16 }}>
+              <CardSub style={{ marginBottom: 12 }}>
+                This quarter&apos;s Tipoff Report is out. Click{' '}
+                <Link href="/report/quarterly">here</Link> to see the quarterly
+                report — national hiring, by vertical, from public job ads.
+              </CardSub>
+              <Button
+                href="/report/quarterly"
+                variant="contained"
+                size="small"
+              >
+                See the quarterly report
+              </Button>
+            </div>
+          )}
+
+          {kind !== 'quarterly' && (
+            <div
+              style={{
+                marginTop: 8,
+                marginBottom: 8,
+                padding: '14px 0 4px',
+                borderTop: '1px solid #eef2f7',
+              }}
+            >
+              <SectionLabel>
+                {data.preview.watchlist && data.preview.watchlist.eventCount > 0
+                  ? `YOUR WATCHLIST — ${data.preview.watchlist.eventCount} event${
+                      data.preview.watchlist.eventCount === 1 ? '' : 's'
+                    } this week`
+                  : 'YOUR WATCHLIST'}
+              </SectionLabel>
+              {data.preview.watchlist &&
+              data.preview.watchlist.events.length > 0 ? (
+                data.preview.watchlist.events.map((event) => (
+                  <SignalStatus
+                    key={`${event.kind}-${event.canonicalJobId}-${event.line}`}
+                    style={{ marginTop: 8 }}
+                  >
+                    {event.line}
+                    {event.heatScore != null ? ` · heat ${event.heatScore}` : ''}
+                    {' · '}
+                    <Link href={`/watchlist`}>Open watchlist</Link>
+                  </SignalStatus>
+                ))
+              ) : (
+                <SignalStatus style={{ marginTop: 8 }}>
+                  No activity on your {data.preview.watchlist?.watchedCount ?? 0}{' '}
+                  watched account
+                  {(data.preview.watchlist?.watchedCount ?? 0) === 1
+                    ? ''
+                    : 's'}
+                  .
+                </SignalStatus>
+              )}
+            </div>
+          )}
+
+          {kind !== 'quarterly' &&
+            data.preview.agencyMarket &&
+            (data.preview.agencyMarket.activity.length > 0 ||
+              data.preview.agencyMarket.takeaways.length > 0 ||
+              data.preview.agencyMarket.relationshipBlurb) && (
+              <div
+                style={{
+                  marginTop: 8,
+                  marginBottom: 8,
+                  padding: '14px 0 4px',
+                  borderTop: '1px solid #eef2f7',
+                }}
+              >
+                <SectionLabel>AGENCY ACTIVITY — your market</SectionLabel>
+                {data.preview.agencyMarket.activity.map((row) => (
+                  <SignalStatus
+                    key={row.agencyCompanyId}
+                    style={{ marginTop: 8 }}
+                  >
+                    <strong style={{ color: '#0f172a' }}>{row.agencyName}</strong>
+                    {' advertising: '}
+                    {row.roles
+                      .map((role) =>
+                        role.clientName
+                          ? `${role.clientName} (${role.title}, ${role.daysLive}d)`
+                          : `${role.title}, ${role.daysLive}d`,
+                      )
+                      .join(' · ')}
+                  </SignalStatus>
+                ))}
+                {data.preview.agencyMarket.takeaways.map((row) => (
+                  <div
+                    key={`${row.agencyCompanyId}-${row.canonicalJobId}`}
+                    style={{
+                      marginTop: 12,
+                      padding: '10px 12px',
+                      background: '#fff7ed',
+                      border: '1px solid #fed7aa',
+                      borderRadius: 8,
+                    }}
+                  >
+                    <SignalStatus style={{ color: '#9a3412' }}>
+                      TAKEAWAY WATCH: {row.line}
+                    </SignalStatus>
+                    <div style={{ marginTop: 8 }}>
+                      <OutreachActions
+                        companyId={row.agencyCompanyId}
+                        canonicalJobId={row.canonicalJobId}
+                        modes={['pitched']}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {data.preview.agencyMarket.relationshipBlurb && (
+                  <SignalStatus style={{ marginTop: 10 }}>
+                    {data.preview.agencyMarket.relationshipBlurb}
+                  </SignalStatus>
+                )}
+              </div>
+            )}
+
+          {kind !== 'quarterly' &&
+            (data.preview.marketIntelBullets?.length ?? 0) > 0 && (
             <IntelBox>
               <CardTitle style={{ color: '#9a3412' }}>
                 {data.preview.marketIntel?.periodLabel ?? 'Market intel'}
@@ -333,7 +456,9 @@ export function DigestPage() {
               </Signal>
             ))}
 
-          {(data.preview.pastClientsHiring?.length ?? 0) > 0 && (
+          {kind !== 'quarterly' &&
+            (data.preview.pastClientsHiring?.length ?? 0) > 0 &&
+            !data.preview.watchlist && (
             <div
               style={{
                 marginTop: 20,

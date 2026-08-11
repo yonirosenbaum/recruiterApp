@@ -79,6 +79,12 @@ export type DigestResponse = {
       liveRoleCount: number;
       sampleTitle: string | null;
     }>;
+    watchlist?: {
+      watchedCount: number;
+      eventCount: number;
+      events: WatchlistEvent[];
+    };
+    agencyMarket?: AgencyMarketDigest | null;
     marketIntel?: MarketIntelReport | null;
     marketIntelBullets?: string[];
   };
@@ -155,6 +161,22 @@ export type MarketIntelReport = {
   thawed: MarketIntelCompanyRow[];
 };
 
+export type QuarterlyVerticalSection = {
+  verticalId: string;
+  verticalName: string;
+  report: MarketIntelReport;
+};
+
+export type QuarterlyMarketIntel = {
+  period: 'quarterly';
+  generatedAt: string;
+  lookbackDays: number;
+  periodLabel: string;
+  editionLabel: string;
+  scope: 'national';
+  verticals: QuarterlyVerticalSection[];
+};
+
 export type DigestSendResult = {
   ok: true;
   kind: DigestKind;
@@ -164,6 +186,44 @@ export type DigestSendResult = {
 };
 
 export type ClientMatchStatus = 'MATCHED' | 'UNMATCHED' | 'AMBIGUOUS';
+
+export type WatchedClientLabel = 'LAPSED' | 'DREAM';
+
+export type WatchlistEvent = {
+  watchedClientId: string;
+  companyId: string;
+  companyName: string;
+  canonicalJobId: string | null;
+  kind: 'new_city' | 'new_listing' | 'repost' | 'salary' | 'thaw';
+  line: string;
+  heatScore: number | null;
+  label: WatchedClientLabel;
+};
+
+export type AgencyMarketDigest = {
+  activity: Array<{
+    agencyCompanyId: string;
+    agencyName: string;
+    roles: Array<{
+      title: string;
+      daysLive: number;
+      clientName: string | null;
+    }>;
+  }>;
+  takeaways: Array<{
+    agencyCompanyId: string;
+    agencyName: string;
+    canonicalJobId: string;
+    title: string;
+    daysLive: number;
+    reposted: boolean;
+    client:
+      | { kind: 'named'; name: string }
+      | { kind: 'unidentified'; role: string; industry: string | null };
+    line: string;
+  }>;
+  relationshipBlurb: string | null;
+};
 
 export type LapsedListResponse = {
   firing: Array<{
@@ -177,7 +237,9 @@ export type LapsedListResponse = {
       title: string;
       heatScore: number | null;
     }>;
+    label?: WatchedClientLabel;
   }>;
+  events?: WatchlistEvent[];
   watchlist: Array<{
     id: string;
     rawName: string;
@@ -186,6 +248,7 @@ export type LapsedListResponse = {
     matchNote: string | null;
     companyId: string | null;
     companyName: string | null;
+    label: WatchedClientLabel;
     createdAt: string;
   }>;
   counts: {
@@ -195,6 +258,8 @@ export type LapsedListResponse = {
     ambiguous: number;
     firing: number;
   };
+  cap: number | null;
+  capUsed: number;
 };
 
 export type LapsedImportReport = {
@@ -296,6 +361,11 @@ export type PublicBenchmarkIndex = {
 export type PublicTipoffReport = MarketIntelReport & {
   headlines: string[];
   editionLabel: string;
+  featuredBenchmarks: PublicBenchmarkListItem[];
+};
+
+export type PublicQuarterlyReport = QuarterlyMarketIntel & {
+  headlines: string[];
   editionKey?: string;
   frozen?: boolean;
   featuredBenchmarks: PublicBenchmarkListItem[];
@@ -314,6 +384,9 @@ export type CoverageResponse = {
     title: string;
     verticals: string[];
     description: string;
+  };
+  integrity?: {
+    takeawaySuppression: string;
   };
   allocations: Array<{
     areaId: string;
@@ -401,6 +474,8 @@ export type AdminUser = {
   email: string;
   fullName: string;
   agencyName: string;
+  agencyCompanyId?: string | null;
+  agencyCompanyName?: string | null;
   role: Role;
   createdAt: string;
   pendingRequests: number;

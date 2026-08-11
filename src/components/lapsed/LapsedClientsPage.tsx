@@ -9,13 +9,18 @@ import {
   CircularProgress,
   Pagination,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
+import Link from 'next/link';
 import { AppHeader } from '@/components/layout/AppHeader';
+import { OutreachActions } from '@/components/common/OutreachActions';
 import {
   useImportLapsedClientsMutation,
   useLapsedClientsQuery,
   useRematchLapsedClientMutation,
   useRemoveLapsedClientMutation,
+  useSetWatchedClientLabelMutation,
 } from '@/lib/query/hooks';
 import { parseCompanyNamesText } from '@/lib/parse-company-names';
 import type { LapsedImportReport } from '@/types/api';
@@ -153,6 +158,8 @@ export function LapsedClientsPage() {
   const importMutation = useImportLapsedClientsMutation();
   const removeMutation = useRemoveLapsedClientMutation();
   const rematchMutation = useRematchLapsedClientMutation();
+  const labelMutation = useSetWatchedClientLabelMutation();
+  const [importLabel, setImportLabel] = useState<'LAPSED' | 'DREAM'>('LAPSED');
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [paste, setPaste] = useState('');
@@ -230,7 +237,10 @@ export function LapsedClientsPage() {
 
   const onConfirmImport = async () => {
     if (pendingRows.length === 0) return;
-    const report = await importMutation.mutateAsync({ rows: pendingRows });
+    const report = await importMutation.mutateAsync({
+      rows: pendingRows,
+      label: importLabel,
+    });
     setLastReport(report);
     setPendingRows([]);
     setPreviewCount(null);
@@ -242,14 +252,15 @@ export function LapsedClientsPage() {
   return (
     <>
       <AppHeader
-        title="Lapsed clients"
-        subtitle="Watch past clients — get alerted when they hire on your patch."
+        title="Watchlist"
+        subtitle="Named accounts you care about — every event, not just the hot ones."
       />
 
       <Intro>
-        Upload or paste company names only (no personal data). We match them to
-        employers already in Tipoff Daily and flag when they post live roles in
-        your territory.
+        Upload or paste company names only (no personal data). Label them as
+        lapsed clients or dream clients — same machinery. Quiet weeks still
+        confirm silence. Cap: {data?.capUsed ?? 0}/
+        {data?.cap != null && Number.isFinite(data.cap) ? data.cap : '∞'}.
       </Intro>
 
       {isLoading && <CircularProgress sx={{ mt: 2 }} />}
@@ -264,10 +275,14 @@ export function LapsedClientsPage() {
           <Section>
             <SectionTitle>Hiring now</SectionTitle>
             <SectionSub>
-              Matched past clients with live roles in your exclusive territory.
+              Matched watched accounts with live roles in your exclusive
+              territory.
             </SectionSub>
             {data.firing.length === 0 ? (
-              <Meta>No watched clients are hiring on your patch right now.</Meta>
+              <Meta>
+                No activity on your {data.counts.total} watched account
+                {data.counts.total === 1 ? '' : 's'}.
+              </Meta>
             ) : (
               <>
                 <ListToolbar>
@@ -297,7 +312,15 @@ export function LapsedClientsPage() {
                 ) : (
                   pagedFiring.map((f) => (
                     <FireCard key={f.watchedClientId}>
-                      <CompanyName>{f.companyName}</CompanyName>
+                      <CompanyName>
+                        {f.companyName}{' '}
+                        <Chip
+                          size="small"
+                          label={f.label === 'DREAM' ? 'dream' : 'lapsed'}
+                          variant="outlined"
+                          sx={{ ml: 0.5, verticalAlign: 'middle' }}
+                        />
+                      </CompanyName>
                       <Meta>
                         {f.liveRoleCount} live role
                         {f.liveRoleCount === 1 ? '' : 's'}
@@ -338,12 +361,58 @@ export function LapsedClientsPage() {
             )}
           </Section>
 
+          {(data.events?.length ?? 0) > 0 && (
+            <Section>
+              <SectionTitle>This week’s events</SectionTitle>
+              <SectionSub>
+                Every listing, city, salary, thaw, and repost — no heat gate.
+              </SectionSub>
+              {data.events!.map((event) => (
+                <Row key={`${event.kind}-${event.canonicalJobId}-${event.line}`}>
+                  <div>
+                    <div style={{ fontWeight: 650 }}>{event.line}</div>
+                    <Meta>
+                      {event.label === 'DREAM' ? 'dream' : 'lapsed'}
+                      {event.heatScore != null ? ` · heat ${event.heatScore}` : ''}
+                    </Meta>
+                    {event.companyId && (
+                      <Meta>
+                        <Link href={`/radar?company=${event.companyId}`}>
+                          Open on radar
+                        </Link>
+                      </Meta>
+                    )}
+                    <div style={{ marginTop: 8 }}>
+                      <OutreachActions
+                        companyId={event.companyId}
+                        canonicalJobId={event.canonicalJobId}
+                        modes={['called', 'not_relevant']}
+                      />
+                    </div>
+                  </div>
+                </Row>
+              ))}
+            </Section>
+          )}
+
           <Section>
-            <SectionTitle>Import clients</SectionTitle>
+            <SectionTitle>Import accounts</SectionTitle>
             <SectionSub>
               CSV or one company per line. Headers like “Company” / “Client”
               work; otherwise we use the first column.
             </SectionSub>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={importLabel}
+              onChange={(_, v: 'LAPSED' | 'DREAM' | null) => {
+                if (v) setImportLabel(v);
+              }}
+              sx={{ mb: 1.5 }}
+            >
+              <ToggleButton value="LAPSED">Lapsed clients</ToggleButton>
+              <ToggleButton value="DREAM">Dream clients</ToggleButton>
+            </ToggleButtonGroup>
             <TextField
               multiline
               minRows={4}
@@ -445,14 +514,14 @@ export function LapsedClientsPage() {
           </Section>
 
           <Section>
-            <SectionTitle>Watchlist</SectionTitle>
+            <SectionTitle>All accounts</SectionTitle>
             <SectionSub>
               {data.counts.total} watched · {data.counts.matched} matched ·{' '}
               {data.counts.unmatched} unmatched · {data.counts.ambiguous}{' '}
               ambiguous
             </SectionSub>
             {data.watchlist.length === 0 ? (
-              <Meta>No clients watched yet — import a list above.</Meta>
+              <Meta>No accounts watched yet — import a list above.</Meta>
             ) : (
               <>
                 <ListToolbar>
@@ -493,7 +562,7 @@ export function LapsedClientsPage() {
                         <Chip
                           size="small"
                           label={w.matchStatus.toLowerCase()}
-                          sx={{ mt: 0.5 }}
+                          sx={{ mt: 0.5, mr: 0.5 }}
                           color={
                             w.matchStatus === 'MATCHED'
                               ? 'success'
@@ -503,8 +572,26 @@ export function LapsedClientsPage() {
                           }
                           variant="outlined"
                         />
+                        <Chip
+                          size="small"
+                          label={w.label === 'DREAM' ? 'dream' : 'lapsed'}
+                          sx={{ mt: 0.5 }}
+                          variant="outlined"
+                        />
                       </div>
                       <RowActions>
+                        <Button
+                          size="small"
+                          onClick={() =>
+                            void labelMutation.mutateAsync({
+                              id: w.id,
+                              label: w.label === 'DREAM' ? 'LAPSED' : 'DREAM',
+                            })
+                          }
+                          disabled={labelMutation.isPending}
+                        >
+                          {w.label === 'DREAM' ? 'Mark lapsed' : 'Mark dream'}
+                        </Button>
                         {(w.matchStatus === 'UNMATCHED' ||
                           w.matchStatus === 'AMBIGUOUS') && (
                           <Button

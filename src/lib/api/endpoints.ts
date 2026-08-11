@@ -11,7 +11,9 @@ import type {
   DigestKind,
   DigestSendResult,
   MarketIntelReport,
+  QuarterlyMarketIntel,
   PublicTipoffReport,
+  PublicQuarterlyReport,
   PublicTipoffReportEditionMeta,
   LastContacted,
   LapsedImportReport,
@@ -58,19 +60,25 @@ export const endpoints = {
     );
   },
 
-  lapsedClients: () => apiFetch<LapsedListResponse>('/lapsed-clients'),
+  quarterlyIntel: () =>
+    apiFetch<QuarterlyMarketIntel>(
+      '/benchmarks/market-intel?period=quarterly',
+    ),
+
+  lapsedClients: () => apiFetch<LapsedListResponse>('/watchlist'),
 
   importLapsedClients: (body: {
     names?: string[];
     rows?: Array<{ row: number; name: string }>;
+    label?: 'LAPSED' | 'DREAM';
   }) =>
-    apiFetch<LapsedImportReport>('/lapsed-clients/import', {
+    apiFetch<LapsedImportReport>('/watchlist/import', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
 
   removeLapsedClient: (id: string) =>
-    apiFetch<{ ok: boolean }>(`/lapsed-clients/${id}`, { method: 'DELETE' }),
+    apiFetch<{ ok: boolean }>(`/watchlist/${id}`, { method: 'DELETE' }),
 
   rematchLapsedClient: (id: string) =>
     apiFetch<{
@@ -80,7 +88,14 @@ export const endpoints = {
       matchNote: string | null;
       companyId: string | null;
       companyName: string | null;
-    }>(`/lapsed-clients/${id}/rematch`, { method: 'POST' }),
+      label?: string;
+    }>(`/watchlist/${id}/rematch`, { method: 'POST' }),
+
+  setWatchedClientLabel: (id: string, label: 'LAPSED' | 'DREAM') =>
+    apiFetch<{ id: string; label: string }>(`/watchlist/${id}/label`, {
+      method: 'PATCH',
+      body: JSON.stringify({ label }),
+    }),
 
   companies: () =>
     apiFetch<{ companies: CompanyDetail[] }>('/companies'),
@@ -98,6 +113,7 @@ export const endpoints = {
     canonicalJobId?: string;
     hiringSignalId?: string;
     note?: string;
+    kind?: 'CONTACTED' | 'NOT_RELEVANT' | 'PITCHED';
   }) =>
     apiFetch<{
       event: {
@@ -160,6 +176,11 @@ export const endpoints = {
   publicTipoffReport: () =>
     apiFetch<PublicTipoffReport>('/benchmarks/report', { auth: false }),
 
+  publicQuarterlyReport: () =>
+    apiFetch<PublicQuarterlyReport>('/benchmarks/report/quarterly', {
+      auth: false,
+    }),
+
   publicTipoffReportEditions: () =>
     apiFetch<PublicTipoffReportEditionMeta[]>(
       '/benchmarks/report/editions',
@@ -167,7 +188,7 @@ export const endpoints = {
     ),
 
   publicTipoffReportEdition: (editionKey: string) =>
-    apiFetch<PublicTipoffReport>(
+    apiFetch<PublicQuarterlyReport>(
       `/benchmarks/report/editions/${encodeURIComponent(editionKey)}`,
       { auth: false },
     ),
@@ -235,6 +256,16 @@ export const endpoints = {
   demoRadar: () => apiFetch<DemoRadarResponse>('/demo/radar', { auth: false }),
 
   adminUsers: () => apiFetch<{ users: AdminUser[] }>('/admin/users'),
+
+  setUserAgencyCompany: (userId: string, companyId: string | null) =>
+    apiFetch<{
+      id: string;
+      agencyCompanyId: string | null;
+      agencyCompanyName: string | null;
+    }>(`/admin/users/${userId}/agency-company`, {
+      method: 'PATCH',
+      body: JSON.stringify({ companyId }),
+    }),
 
   adminTerritoryStats: () =>
     apiFetch<AdminTerritoryStats>('/admin/territory-stats'),

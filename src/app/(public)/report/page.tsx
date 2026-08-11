@@ -15,26 +15,21 @@ const body = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: 'Quarterly Tipoff Report — Tipoff Daily',
+  title: 'National Tipoff Report — Tipoff Daily',
   description:
     'National hiring, fill times, and salary movement from Australian public job ads. The edition directors forward.',
   openGraph: {
-    title: 'Quarterly Tipoff Report — Tipoff Daily',
+    title: 'National Tipoff Report — Tipoff Daily',
     description:
       'The Australian hiring market, measured from the ads employers published.',
     type: 'article',
   },
 };
 
-export default async function PublicTipoffReportPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ edition?: string; print?: string }>;
-}) {
-  const { edition } = await searchParams;
+export default function PublicTipoffReportPage() {
   return (
     <div className={`${display.variable} ${body.variable}`}>
-      <TipoffReportPage edition={edition} />
+      <TipoffReportPage />
     </div>
   );
 }

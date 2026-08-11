@@ -116,7 +116,10 @@ export function SignupPage() {
         <Title>Create your account</Title>
         <Sub>
           Next you&apos;ll request an exclusive city × vertical territory. Only
-          the agency that holds a slot sees that market&apos;s tipoffs.
+          the agency that holds a slot sees that market&apos;s tipoffs. If your
+          agency name matches a classified agency in our graph, we link it so
+          takeaway alerts about your own ads are suppressed from competitors —
+          we never guess from a similar name.
         </Sub>
         <Form onSubmit={onSubmit}>
           <TextField

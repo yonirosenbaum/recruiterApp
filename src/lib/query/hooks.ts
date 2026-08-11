@@ -34,8 +34,9 @@ export const queryKeys = {
   publicBenchmarks: (areaId?: string) =>
     ['benchmarks', 'public', areaId ?? 'all'] as const,
   publicBenchmark: (slug: string) => ['benchmarks', 'public', slug] as const,
-  publicTipoffReport: (editionKey?: string | null) =>
-    ['benchmarks', 'report', editionKey ?? 'live'] as const,
+  publicTipoffReport: () => ['benchmarks', 'report', 'national'] as const,
+  publicQuarterlyReport: (editionKey?: string | null) =>
+    ['benchmarks', 'report', 'quarterly', editionKey ?? 'live'] as const,
   territoryOptions: (scope: TerritoryScope) =>
     ['territories', 'options', scope] as const,
   myTerritoryRequests: ['territories', 'requests', 'mine'] as const,
@@ -81,9 +82,21 @@ export function useMarketIntelQuery(
     queryKey: queryKeys.marketIntel(user?.id, period),
     queryFn: () =>
       endpoints.marketIntel({
-        period,
-        lookbackDays: period === 'quarterly' ? 90 : undefined,
+        period: 'weekly',
+        lookbackDays: undefined,
       }),
+    enabled:
+      Boolean(user) &&
+      period === 'weekly' &&
+      (options?.enabled ?? true),
+  });
+}
+
+export function useQuarterlyIntelQuery(options?: { enabled?: boolean }) {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: queryKeys.marketIntel(user?.id, 'quarterly'),
+    queryFn: () => endpoints.quarterlyIntel(),
     enabled: Boolean(user) && (options?.enabled ?? true),
   });
 }
@@ -125,6 +138,23 @@ export function useRematchLapsedClientMutation() {
   const { user } = useAuth();
   return useMutation({
     mutationFn: endpoints.rematchLapsedClient,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.lapsed(user?.id) });
+    },
+  });
+}
+
+export function useSetWatchedClientLabelMutation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: ({
+      id,
+      label,
+    }: {
+      id: string;
+      label: 'LAPSED' | 'DREAM';
+    }) => endpoints.setWatchedClientLabel(id, label),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.lapsed(user?.id) });
     },
@@ -218,13 +248,20 @@ export function usePublicBenchmarkQuery(slug: string) {
   });
 }
 
-export function usePublicTipoffReportQuery(editionKey?: string | null) {
+export function usePublicTipoffReportQuery() {
   return useQuery({
-    queryKey: queryKeys.publicTipoffReport(editionKey),
+    queryKey: queryKeys.publicTipoffReport(),
+    queryFn: () => endpoints.publicTipoffReport(),
+  });
+}
+
+export function usePublicQuarterlyReportQuery(editionKey?: string | null) {
+  return useQuery({
+    queryKey: queryKeys.publicQuarterlyReport(editionKey),
     queryFn: () =>
       editionKey
         ? endpoints.publicTipoffReportEdition(editionKey)
-        : endpoints.publicTipoffReport(),
+        : endpoints.publicQuarterlyReport(),
   });
 }
 
@@ -274,6 +311,7 @@ export function useMarkContactedMutation() {
       void qc.invalidateQueries({ queryKey: ['radar'] });
       void qc.invalidateQueries({ queryKey: ['companies'] });
       void qc.invalidateQueries({ queryKey: ['digest'] });
+      void qc.invalidateQueries({ queryKey: ['lapsed'] });
     },
   });
 }
@@ -286,6 +324,23 @@ export function useUndoOutreachMutation() {
       void qc.invalidateQueries({ queryKey: ['radar'] });
       void qc.invalidateQueries({ queryKey: ['companies'] });
       void qc.invalidateQueries({ queryKey: ['digest'] });
+      void qc.invalidateQueries({ queryKey: ['lapsed'] });
+    },
+  });
+}
+
+export function useSetUserAgencyCompanyMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      companyId,
+    }: {
+      userId: string;
+      companyId: string | null;
+    }) => endpoints.setUserAgencyCompany(userId, companyId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.adminUsers });
     },
   });
 }

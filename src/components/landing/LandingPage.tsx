@@ -590,7 +590,7 @@ export function LandingPage() {
             the page directors forward, and the live demo of the benchmarks
             themselves.
           </ReportBody>
-          <ReportLink href="/report">
+          <ReportLink href="/report/quarterly">
             Read the {currentQuarter()} report →
           </ReportLink>
         </ReportBand>

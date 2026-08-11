@@ -191,7 +191,7 @@ export function TriggerCard({ trigger, compact = false }: TriggerCardProps) {
 
       {trigger.benchmarkPitch ? <Pitch>{trigger.benchmarkPitch}</Pitch> : null}
 
-      {!compact && trigger.talkingPoints.length > 0 && (
+      {!compact && trigger.talkingPoints?.length > 0 && (
         <Points>
           <PointsLabel>WHY REACH OUT</PointsLabel>
           <PointsList>

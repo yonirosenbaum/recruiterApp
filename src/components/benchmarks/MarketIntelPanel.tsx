@@ -11,8 +11,7 @@ const Panel = styled.section`
   border: 1px solid #e8edf5;
   border-radius: 14px;
   padding: 18px 20px;
-  margin-top: 24px;
-  max-width: 920px;
+  min-width: 0;
 `;
 
 const Title = styled.h2`

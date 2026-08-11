@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import {
   Alert,
@@ -23,12 +23,26 @@ const Intro = styled.p`
   max-width: 640px;
 `;
 
+const Columns = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Column = styled.div`
+  min-width: 0;
+`;
+
 const Controls = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
-  max-width: 920px;
 `;
 
 const Panel = styled.section`
@@ -36,7 +50,13 @@ const Panel = styled.section`
   border: 1px solid #e8edf5;
   border-radius: 14px;
   padding: 18px 20px;
-  max-width: 720px;
+  min-width: 0;
+`;
+
+const CardTitle = styled.h2`
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 750;
 `;
 
 const Metrics = styled.div`
@@ -118,15 +138,28 @@ export function BenchmarksPage() {
   const [verticalId, setVerticalId] = useState('');
   const [titleQuery, setTitleQuery] = useState('');
   const [copied, setCopied] = useState(false);
+  const [debounced, setDebounced] = useState({
+    areaId: '',
+    verticalId: '',
+    titleQuery: '',
+  });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebounced({ areaId, verticalId, titleQuery });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [areaId, verticalId, titleQuery]);
 
   const params = useMemo(() => {
-    if (!areaId || !titleQuery.trim()) return null;
+    const title = debounced.titleQuery.trim();
+    if (!debounced.areaId || !title) return null;
     return {
-      areaId,
-      titleQuery: titleQuery.trim(),
-      verticalId: verticalId || undefined,
+      areaId: debounced.areaId,
+      titleQuery: title,
+      verticalId: debounced.verticalId || undefined,
     };
-  }, [areaId, titleQuery, verticalId]);
+  }, [debounced]);
 
   const resultQuery = useBenchmarksQuery(params);
 
@@ -202,22 +235,21 @@ export function BenchmarksPage() {
 
       <Intro>
         Market stats for a title use the full city catalog. “Your opens” only
-        count live roles on your allocated patch. Market intel below is
+        count live roles on your allocated patch. Market intel is
         allocation-scoped.
       </Intro>
 
-      <MarketIntelPanel />
+      <Columns>
+        <Column>
+          <Panel>
+          <CardTitle>Title × city slice</CardTitle>
+          {optionsQuery.isLoading && <CircularProgress sx={{ mt: 2 }} />}
+          {optionsQuery.isError && (
+            <Alert severity="error">Failed to load benchmark options.</Alert>
+          )}
 
-      {optionsQuery.isLoading && <CircularProgress sx={{ mt: 2 }} />}
-      {optionsQuery.isError && (
-        <Alert severity="error">Failed to load benchmark options.</Alert>
-      )}
-
-      {optionsQuery.data && (
-        <>
-          <SectionTitle style={{ marginTop: 28 }}>
-            TITLE × CITY SLICE
-          </SectionTitle>
+          {optionsQuery.data && (
+            <>
           <Controls>
             <TextField
               select
@@ -298,7 +330,7 @@ export function BenchmarksPage() {
           )}
 
           {resultQuery.data && (
-            <Panel>
+            <>
               {!resultQuery.data.available ? (
                 <Alert severity="info" sx={{ mb: 2 }}>
                   Not enough closed roles yet ({resultQuery.data.sampleSize}{' '}
@@ -406,10 +438,17 @@ export function BenchmarksPage() {
                   </Actions>
                 </>
               )}
-            </Panel>
+            </>
           )}
-        </>
-      )}
+            </>
+          )}
+          </Panel>
+        </Column>
+
+        <Column>
+          <MarketIntelPanel />
+        </Column>
+      </Columns>
     </>
   );
 }

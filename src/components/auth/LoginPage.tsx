@@ -88,8 +88,8 @@ export function LoginPage() {
   const router = useRouter();
   const { setSession } = useAuth();
   const login = useLoginMutation();
-  const [email, setEmail] = useState("jd@meridian.com.au");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,9 +105,6 @@ export function LoginPage() {
           <Logo>HR</Logo>
           <div>
             <strong>Tipoff Daily</strong>
-            <div style={{ fontSize: 12, color: "#64748b" }}>
-              Meridian Recruitment
-            </div>
           </div>
         </Brand>
         <Title>Sign in</Title>

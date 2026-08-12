@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { AppHeader } from "@/components/layout/AppHeader";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { formatContactedLabel } from "@/lib/format-contacted";
 import {
   useCompaniesQuery,
@@ -190,7 +191,21 @@ function AgencyToggle({
   companyId: string;
   isAgency: boolean;
 }) {
+  const { user } = useAuth();
   const setAgency = useSetCompanyAgencyMutation();
+  const canClassify = user?.role === "SUPER_ADMIN";
+
+  if (!canClassify) {
+    return (
+      <Chip
+        size="small"
+        label={isAgency ? "Staffing agency" : "End-employer"}
+        variant="outlined"
+        sx={{ mt: 1 }}
+      />
+    );
+  }
+
   return (
     <FormControlLabel
       sx={{ mt: 1, ml: 0 }}

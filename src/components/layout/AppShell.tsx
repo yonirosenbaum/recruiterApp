@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import styled from "styled-components";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { NoTerritoryBanner } from "@/components/territory/NoTerritoryBanner";
@@ -36,28 +36,11 @@ const Disclaimer = styled.p`
 `;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [collapsed, setCollapsed] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth <= 720 : false,
-  );
   const [territoryOpen, setTerritoryOpen] = useState(false);
-
-  useEffect(() => {
-    // Mobile: keep the sidebar icon-only so the main content has space.
-    const apply = () => {
-      if (window.innerWidth <= 720) setCollapsed(true);
-    };
-    apply();
-    window.addEventListener("resize", apply);
-    return () => window.removeEventListener("resize", apply);
-  }, []);
 
   return (
     <Frame>
-      <Sidebar
-        collapsed={collapsed}
-        onToggleCollapse={() => setCollapsed((v) => !v)}
-        onRequestTerritory={() => setTerritoryOpen(true)}
-      />
+      <Sidebar onRequestTerritory={() => setTerritoryOpen(true)} />
       <Main>
         <Content>
           <NoTerritoryBanner

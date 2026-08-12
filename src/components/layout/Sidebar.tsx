@@ -3,7 +3,6 @@
 import {
   AdminPanelSettings,
   Business,
-  ChevronLeft,
   ExpandLess,
   ExpandMore,
   History,
@@ -28,11 +27,9 @@ import {
 } from "@/lib/query/hooks";
 import { colors } from "@/theme/theme";
 
-const Shell = styled.aside<{ $collapsed: boolean; $open: boolean }>`
-  width: ${({ $collapsed, $open }) =>
-    $collapsed && !$open ? "72px" : "260px"};
-  min-width: ${({ $collapsed, $open }) =>
-    $collapsed && !$open ? "72px" : "260px"};
+const Shell = styled.aside`
+  width: 260px;
+  min-width: 260px;
   background: ${colors.sidebar};
   color: #cbd5e1;
   display: flex;
@@ -40,7 +37,6 @@ const Shell = styled.aside<{ $collapsed: boolean; $open: boolean }>`
   height: 100vh;
   position: sticky;
   top: 0;
-  transition: width 0.2s ease;
 `;
 
 const Brand = styled.div`
@@ -157,12 +153,10 @@ const TerritoryCard = styled.button`
   }
 `;
 
-const LogoutBtn = styled.button<{ $collapsed: boolean }>`
+const LogoutBtn = styled.button`
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: ${({ $collapsed }) =>
-    $collapsed ? "center" : "flex-start"};
   gap: 10px;
   border: 1px solid rgba(248, 113, 113, 0.35);
   background: transparent;
@@ -181,26 +175,6 @@ const LogoutBtn = styled.button<{ $collapsed: boolean }>`
   }
 `;
 
-const CollapseBtn = styled.button`
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 0;
-  background: transparent;
-  color: #94a3b8;
-  padding: 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-
-  &:hover {
-    color: #fff;
-    background: ${colors.sidebarHover};
-  }
-`;
-
 const HIRING_SIGNAL_PATHS = [
   "/radar",
   "/digest",
@@ -211,16 +185,10 @@ const HIRING_SIGNAL_PATHS = [
 ] as const;
 
 type SidebarProps = {
-  collapsed: boolean;
-  onToggleCollapse: () => void;
   onRequestTerritory: () => void;
 };
 
-export function Sidebar({
-  collapsed,
-  onToggleCollapse,
-  onRequestTerritory,
-}: SidebarProps) {
+export function Sidebar({ onRequestTerritory }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, clearSession } = useAuth();
@@ -274,15 +242,13 @@ export function Sidebar({
   ];
 
   return (
-    <Shell $collapsed={collapsed} $open={open}>
+    <Shell>
       <Brand>
         <Logo>HR</Logo>
-        {!collapsed || open ? (
-          <BrandText>
-            <BrandTitle>Tipoff Daily</BrandTitle>
-            <BrandSub>{user?.agencyName ?? "Agency"}</BrandSub>
-          </BrandText>
-        ) : null}
+        <BrandText>
+          <BrandTitle>Tipoff Daily</BrandTitle>
+          <BrandSub>{user?.agencyName ?? "Agency"}</BrandSub>
+        </BrandText>
       </Brand>
 
       <Nav>
@@ -293,16 +259,12 @@ export function Sidebar({
           aria-expanded={open}
         >
           <Sensors fontSize="small" />
-          {!collapsed || open ? (
-            <>
-              <span style={{ flex: 1, textAlign: "left" }}>Hiring Signals</span>
-              {open ? (
-                <ExpandLess fontSize="small" />
-              ) : (
-                <ExpandMore fontSize="small" />
-              )}
-            </>
-          ) : null}
+          <span style={{ flex: 1, textAlign: "left" }}>Hiring Signals</span>
+          {open ? (
+            <ExpandLess fontSize="small" />
+          ) : (
+            <ExpandMore fontSize="small" />
+          )}
         </ParentBtn>
 
         <Collapse in={open} timeout="auto" unmountOnExit>
@@ -336,7 +298,7 @@ export function Sidebar({
           style={{ marginTop: 10, marginLeft: 0 }}
         >
           <QueryStats fontSize="small" />
-          {!collapsed && <span style={{ flex: 1 }}>Benchmarks</span>}
+          <span style={{ flex: 1 }}>Benchmarks</span>
         </SubLink>
 
         {isAdmin && (
@@ -346,13 +308,13 @@ export function Sidebar({
             style={{ marginTop: 4, marginLeft: 0 }}
           >
             <AdminPanelSettings fontSize="small" />
-            {!collapsed && <span style={{ flex: 1 }}>Admin</span>}
+            <span style={{ flex: 1 }}>Admin</span>
           </SubLink>
         )}
       </Nav>
 
       <Footer>
-        {!collapsed && territory && (
+        {territory && (
           <TerritoryCard
             type="button"
             onClick={() => {
@@ -371,23 +333,13 @@ export function Sidebar({
         )}
         <LogoutBtn
           type="button"
-          $collapsed={collapsed}
           onClick={handleLogout}
           title="Log out"
           aria-label="Log out"
         >
           <Logout fontSize="small" />
-          {!collapsed && (
-            <span style={{ flex: 1, textAlign: "left" }}>Log out</span>
-          )}
+          <span style={{ flex: 1, textAlign: "left" }}>Log out</span>
         </LogoutBtn>
-        <CollapseBtn type="button" onClick={onToggleCollapse}>
-          <ChevronLeft
-            fontSize="small"
-            sx={{ transform: collapsed ? "rotate(180deg)" : "none" }}
-          />
-          {!collapsed && "Collapse"}
-        </CollapseBtn>
       </Footer>
     </Shell>
   );

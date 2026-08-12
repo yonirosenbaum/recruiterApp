@@ -53,6 +53,12 @@ export type RadarResponse = {
     triggerTypes: string[];
   };
   triggers: RadarTrigger[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type DigestKind = 'daily' | 'weekly' | 'quarterly';

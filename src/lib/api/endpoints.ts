@@ -31,10 +31,21 @@ import type {
 export type TerritoryScope = 'allocated' | 'requestable' | 'all';
 
 export const endpoints = {
-  radar: (params?: { triggerType?: string; vertical?: string }) => {
+  radar: (params?: {
+    triggerType?: string;
+    vertical?: string;
+    page?: number;
+    pageSize?: number;
+    companyId?: string;
+  }) => {
     const search = new URLSearchParams();
     if (params?.triggerType) search.set('triggerType', params.triggerType);
     if (params?.vertical) search.set('vertical', params.vertical);
+    if (params?.page != null) search.set('page', String(params.page));
+    if (params?.pageSize != null) {
+      search.set('pageSize', String(params.pageSize));
+    }
+    if (params?.companyId) search.set('companyId', params.companyId);
     const qs = search.toString();
     return apiFetch<RadarResponse>(`/radar${qs ? `?${qs}` : ''}`);
   },

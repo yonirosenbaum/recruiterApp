@@ -6,15 +6,18 @@ import {
   CircularProgress,
   FormControl,
   MenuItem,
+  Pagination,
   Select,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TriggerCard } from "@/components/radar/TriggerCard";
 import { useRadarQuery } from "@/lib/query/hooks";
 import type { RadarTrigger } from "@/types/api";
+
+const PAGE_SIZE = 25;
 
 const Banner = styled.section`
   background: linear-gradient(135deg, #0f2744 0%, #1e3a5f 55%, #243b66 100%);
@@ -127,6 +130,15 @@ const List = styled.div`
   gap: 12px;
 `;
 
+const ListFooter = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 16px;
+`;
+
 const Empty = styled.p`
   margin: 24px 0;
   color: #64748b;
@@ -164,24 +176,39 @@ export function RadarPage() {
   const [triggerType, setTriggerType] = useState("All triggers");
   const [vertical, setVertical] = useState("All verticals");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
-  const companyFilter = searchParams.get("company");
-  const { data, isLoading, isError } = useRadarQuery({ triggerType, vertical });
+  const companyFilter = searchParams.get("company") ?? undefined;
+  const { data, isLoading, isError, isFetching } = useRadarQuery({
+    triggerType,
+    vertical,
+    page,
+    pageSize: PAGE_SIZE,
+    companyId: companyFilter,
+  });
+
+  useEffect(() => {
+    setPage(1);
+  }, [triggerType, vertical, companyFilter]);
 
   const triggers = data?.triggers ?? [];
-  const filteredTriggers = triggers.filter(
-    (trigger) =>
-      matchesSearch(trigger, search) &&
-      (!companyFilter || trigger.companyId === companyFilter),
+  const filteredTriggers = triggers.filter((trigger) =>
+    matchesSearch(trigger, search),
   );
   const searchLabel = search.trim();
+  const pagination = data?.pagination;
+  const total = pagination?.total ?? triggers.length;
+  const totalPages = pagination?.totalPages ?? 1;
+  const safePage = Math.min(page, totalPages);
 
   return (
     <>
       <AppHeader
         title="Radar"
         searchValue={search}
-        onSearchChange={setSearch}
+        onSearchChange={(value) => {
+          setSearch(value);
+        }}
         subtitle={
           data
             ? `Ranked BD triggers — ${new Date(
@@ -265,8 +292,10 @@ export function RadarPage() {
               />
             ))}
             <Count>
-              {filteredTriggers.length} of {triggers.length} triggers
-              {searchLabel ? ` matching “${searchLabel}”` : ""}
+              {searchLabel
+                ? `${filteredTriggers.length} on this page matching “${searchLabel}”`
+                : `Showing ${triggers.length} of ${total} triggers`}
+              {isFetching ? " · updating…" : ""}
             </Count>
           </Filters>
 
@@ -274,7 +303,7 @@ export function RadarPage() {
             {filteredTriggers.length === 0 ? (
               <Empty>
                 {searchLabel
-                  ? `No triggers match “${searchLabel}”.`
+                  ? `No triggers on this page match “${searchLabel}”.`
                   : "No triggers in this filter."}
               </Empty>
             ) : (
@@ -283,6 +312,21 @@ export function RadarPage() {
               ))
             )}
           </List>
+
+          {totalPages > 1 && (
+            <ListFooter>
+              <Count>
+                Page {safePage} of {totalPages}
+              </Count>
+              <Pagination
+                count={totalPages}
+                page={safePage}
+                onChange={(_, next) => setPage(next)}
+                color="primary"
+                size="small"
+              />
+            </ListFooter>
+          )}
         </>
       )}
     </>

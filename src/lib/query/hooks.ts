@@ -11,8 +11,13 @@ import type { DigestKind, TerritoryRequestStatus } from '@/types/api';
 import { useAuth } from '@/components/auth/AuthProvider';
 
 export const queryKeys = {
-  radar: (filters?: { triggerType?: string; vertical?: string }) =>
-    ['radar', filters] as const,
+  radar: (filters?: {
+    triggerType?: string;
+    vertical?: string;
+    page?: number;
+    pageSize?: number;
+    companyId?: string;
+  }) => ['radar', filters] as const,
   digest: (userId?: string, kind: DigestKind = 'daily') =>
     ['digest', userId, kind] as const,
   marketIntel: (
@@ -51,10 +56,14 @@ export const queryKeys = {
 export function useRadarQuery(filters?: {
   triggerType?: string;
   vertical?: string;
+  page?: number;
+  pageSize?: number;
+  companyId?: string;
 }) {
   return useQuery({
     queryKey: queryKeys.radar(filters),
     queryFn: () => endpoints.radar(filters),
+    placeholderData: keepPreviousData,
   });
 }
 

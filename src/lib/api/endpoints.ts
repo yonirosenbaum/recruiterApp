@@ -37,6 +37,7 @@ export const endpoints = {
     page?: number;
     pageSize?: number;
     companyId?: string;
+    search?: string;
   }) => {
     const search = new URLSearchParams();
     if (params?.triggerType) search.set('triggerType', params.triggerType);
@@ -46,6 +47,7 @@ export const endpoints = {
       search.set('pageSize', String(params.pageSize));
     }
     if (params?.companyId) search.set('companyId', params.companyId);
+    if (params?.search?.trim()) search.set('search', params.search.trim());
     const qs = search.toString();
     return apiFetch<RadarResponse>(`/radar${qs ? `?${qs}` : ''}`);
   },

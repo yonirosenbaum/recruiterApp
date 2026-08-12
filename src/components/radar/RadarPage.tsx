@@ -15,7 +15,6 @@ import styled from "styled-components";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TriggerCard } from "@/components/radar/TriggerCard";
 import { useRadarQuery } from "@/lib/query/hooks";
-import type { RadarTrigger } from "@/types/api";
 
 const PAGE_SIZE = 25;
 
@@ -146,56 +145,39 @@ const Empty = styled.p`
   text-align: center;
 `;
 
-function matchesSearch(trigger: RadarTrigger, query: string): boolean {
-  const tokens = query
-    .trim()
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (tokens.length === 0) return true;
-
-  const haystack = [
-    trigger.companyName,
-    trigger.jobTitle,
-    trigger.location,
-    trigger.industry,
-    trigger.category,
-    trigger.insightText,
-    ...(Array.isArray(trigger.talkingPoints) ? trigger.talkingPoints : []),
-  ]
-    .filter((part): part is string => Boolean(part))
-    .join(" ")
-    .toLowerCase();
-
-  return tokens.every((token) => haystack.includes(token));
-}
-
 export function RadarPage() {
   "use no memo";
 
   const [triggerType, setTriggerType] = useState("All triggers");
   const [vertical, setVertical] = useState("All verticals");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
   const companyFilter = searchParams.get("company") ?? undefined;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(search.trim());
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
   const { data, isLoading, isError, isFetching } = useRadarQuery({
     triggerType,
     vertical,
     page,
     pageSize: PAGE_SIZE,
     companyId: companyFilter,
+    search: debouncedSearch || undefined,
   });
 
   useEffect(() => {
     setPage(1);
-  }, [triggerType, vertical, companyFilter]);
+  }, [triggerType, vertical, companyFilter, debouncedSearch]);
 
   const triggers = data?.triggers ?? [];
-  const filteredTriggers = triggers.filter((trigger) =>
-    matchesSearch(trigger, search),
-  );
-  const searchLabel = search.trim();
+  const searchLabel = debouncedSearch;
   const pagination = data?.pagination;
   const total = pagination?.total ?? triggers.length;
   const totalPages = pagination?.totalPages ?? 1;
@@ -293,21 +275,21 @@ export function RadarPage() {
             ))}
             <Count>
               {searchLabel
-                ? `${filteredTriggers.length} on this page matching “${searchLabel}”`
+                ? `${total} matching “${searchLabel}”`
                 : `Showing ${triggers.length} of ${total} triggers`}
               {isFetching ? " · updating…" : ""}
             </Count>
           </Filters>
 
           <List>
-            {filteredTriggers.length === 0 ? (
+            {triggers.length === 0 ? (
               <Empty>
                 {searchLabel
-                  ? `No triggers on this page match “${searchLabel}”.`
+                  ? `No triggers match “${searchLabel}”.`
                   : "No triggers in this filter."}
               </Empty>
             ) : (
-              filteredTriggers.map((trigger) => (
+              triggers.map((trigger) => (
                 <TriggerCard key={trigger.id} trigger={trigger} />
               ))
             )}

@@ -17,6 +17,7 @@ export const queryKeys = {
     page?: number;
     pageSize?: number;
     companyId?: string;
+    search?: string;
   }) => ['radar', filters] as const,
   digest: (userId?: string, kind: DigestKind = 'daily') =>
     ['digest', userId, kind] as const,
@@ -59,6 +60,7 @@ export function useRadarQuery(filters?: {
   page?: number;
   pageSize?: number;
   companyId?: string;
+  search?: string;
 }) {
   return useQuery({
     queryKey: queryKeys.radar(filters),

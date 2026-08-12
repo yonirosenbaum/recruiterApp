@@ -73,7 +73,13 @@ const Table = styled.table`
   }
 `;
 
-type SortKey = 'areaName' | 'verticalName' | 'liveJobs' | 'jobs' | 'companies';
+type SortKey =
+  | 'areaName'
+  | 'verticalName'
+  | 'liveJobs'
+  | 'jobs'
+  | 'radarTriggers'
+  | 'companies';
 
 function compare(
   a: AdminTerritoryComboRow,
@@ -92,7 +98,7 @@ function compare(
 export function AdminCoverageTable() {
   const { data, isLoading, isError } = useAdminTerritoryStatsQuery();
   const [q, setQ] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('liveJobs');
+  const [sortKey, setSortKey] = useState<SortKey>('radarTriggers');
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
 
   const rows = useMemo(() => {
@@ -130,8 +136,8 @@ export function AdminCoverageTable() {
     <>
       <Toolbar>
         <Hint>
-          {rows.length} of {data.rows.length} city × vertical slots · live jobs
-          are currently open ads
+          {rows.length} of {data.rows.length} city × vertical slots · radar is
+          active hiring signals (non-agency) · live jobs are currently open ads
         </Hint>
         <TextField
           size="small"
@@ -149,6 +155,9 @@ export function AdminCoverageTable() {
               <th onClick={() => onSort('areaName')}>City{mark('areaName')}</th>
               <th onClick={() => onSort('verticalName')}>
                 Vertical{mark('verticalName')}
+              </th>
+              <th className="num" onClick={() => onSort('radarTriggers')}>
+                Radar{mark('radarTriggers')}
               </th>
               <th className="num" onClick={() => onSort('liveJobs')}>
                 Live jobs{mark('liveJobs')}
@@ -169,6 +178,9 @@ export function AdminCoverageTable() {
                   {row.state ? ` · ${row.state}` : ''}
                 </td>
                 <td>{row.verticalName}</td>
+                <td className="num">
+                  {row.radarTriggers.toLocaleString('en-AU')}
+                </td>
                 <td className="num">{row.liveJobs.toLocaleString('en-AU')}</td>
                 <td className="num">{row.jobs.toLocaleString('en-AU')}</td>
                 <td className="num">
@@ -181,6 +193,9 @@ export function AdminCoverageTable() {
             <tr>
               <td colSpan={2}>Mapped totals</td>
               <td className="num">
+                {data.totals.radarTriggers.toLocaleString('en-AU')}
+              </td>
+              <td className="num">
                 {data.totals.liveJobs.toLocaleString('en-AU')}
               </td>
               <td className="num">
@@ -192,6 +207,9 @@ export function AdminCoverageTable() {
             </tr>
             <tr className="muted">
               <td colSpan={2}>Unmapped (missing city or vertical)</td>
+              <td className="num">
+                {data.unmapped.radarTriggers.toLocaleString('en-AU')}
+              </td>
               <td className="num">
                 {data.unmapped.liveJobs.toLocaleString('en-AU')}
               </td>

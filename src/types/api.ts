@@ -460,13 +460,24 @@ export type AdminTerritoryComboRow = {
   verticalName: string;
   jobs: number;
   liveJobs: number;
+  radarTriggers: number;
   companies: number;
 };
 
 export type AdminTerritoryStats = {
   rows: AdminTerritoryComboRow[];
-  unmapped: { jobs: number; liveJobs: number; companies: number };
-  totals: { jobs: number; liveJobs: number; companies: number };
+  unmapped: {
+    jobs: number;
+    liveJobs: number;
+    radarTriggers: number;
+    companies: number;
+  };
+  totals: {
+    jobs: number;
+    liveJobs: number;
+    radarTriggers: number;
+    companies: number;
+  };
 };
 
 export type AdminUser = {

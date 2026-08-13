@@ -38,6 +38,8 @@ export const endpoints = {
     pageSize?: number;
     companyId?: string;
     search?: string;
+    areaId?: string;
+    verticalId?: string;
   }) => {
     const search = new URLSearchParams();
     if (params?.triggerType) search.set('triggerType', params.triggerType);
@@ -48,6 +50,8 @@ export const endpoints = {
     }
     if (params?.companyId) search.set('companyId', params.companyId);
     if (params?.search?.trim()) search.set('search', params.search.trim());
+    if (params?.areaId) search.set('areaId', params.areaId);
+    if (params?.verticalId) search.set('verticalId', params.verticalId);
     const qs = search.toString();
     return apiFetch<RadarResponse>(`/radar${qs ? `?${qs}` : ''}`);
   },

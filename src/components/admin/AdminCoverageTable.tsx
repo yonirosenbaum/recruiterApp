@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import styled from 'styled-components';
 import { Alert, CircularProgress, TextField } from '@mui/material';
 import { useAdminTerritoryStatsQuery } from '@/lib/query/hooks';
@@ -71,6 +72,14 @@ const Table = styled.table`
   tr.muted td {
     color: #64748b;
   }
+
+  tbody tr.clickable {
+    cursor: pointer;
+  }
+
+  tbody tr.clickable:hover td {
+    background: #f1f5f9;
+  }
 `;
 
 type SortKey =
@@ -97,6 +106,7 @@ function compare(
 
 export function AdminCoverageTable() {
   const { data, isLoading, isError } = useAdminTerritoryStatsQuery();
+  const router = useRouter();
   const [q, setQ] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('radarTriggers');
   const [sortDir, setSortDir] = useState<1 | -1>(-1);
@@ -136,8 +146,9 @@ export function AdminCoverageTable() {
     <>
       <Toolbar>
         <Hint>
-          {rows.length} of {data.rows.length} city × vertical slots · radar is
-          active hiring signals (non-agency) · live jobs are currently open ads
+          {rows.length} of {data.rows.length} city × vertical slots · click a
+          row to open that radar · radar is active hiring signals (non-agency) ·
+          live jobs are currently open ads
         </Hint>
         <TextField
           size="small"
@@ -171,23 +182,41 @@ export function AdminCoverageTable() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={`${row.areaId}::${row.verticalId}`}>
-                <td>
-                  {row.areaName}
-                  {row.state ? ` · ${row.state}` : ''}
-                </td>
-                <td>{row.verticalName}</td>
-                <td className="num">
-                  {row.radarTriggers.toLocaleString('en-AU')}
-                </td>
-                <td className="num">{row.liveJobs.toLocaleString('en-AU')}</td>
-                <td className="num">{row.jobs.toLocaleString('en-AU')}</td>
-                <td className="num">
-                  {row.companies.toLocaleString('en-AU')}
-                </td>
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const city = row.state
+                ? `${row.areaName} · ${row.state}`
+                : row.areaName;
+              const href = `/radar?areaId=${encodeURIComponent(row.areaId)}&verticalId=${encodeURIComponent(row.verticalId)}&vertical=${encodeURIComponent(row.verticalName)}&city=${encodeURIComponent(city)}`;
+              return (
+                <tr
+                  key={`${row.areaId}::${row.verticalId}`}
+                  className="clickable"
+                  tabIndex={0}
+                  role="link"
+                  onClick={() => router.push(href)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      router.push(href);
+                    }
+                  }}
+                >
+                  <td>
+                    {row.areaName}
+                    {row.state ? ` · ${row.state}` : ''}
+                  </td>
+                  <td>{row.verticalName}</td>
+                  <td className="num">
+                    {row.radarTriggers.toLocaleString('en-AU')}
+                  </td>
+                  <td className="num">{row.liveJobs.toLocaleString('en-AU')}</td>
+                  <td className="num">{row.jobs.toLocaleString('en-AU')}</td>
+                  <td className="num">
+                    {row.companies.toLocaleString('en-AU')}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
           <tfoot>
             <tr>

@@ -10,7 +10,7 @@ import {
   Select,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import styled from "styled-components";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { TriggerCard } from "@/components/radar/TriggerCard";
@@ -149,12 +149,19 @@ export function RadarPage() {
   "use no memo";
 
   const [triggerType, setTriggerType] = useState("All triggers");
-  const [vertical, setVertical] = useState("All verticals");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const companyFilter = searchParams.get("company") ?? undefined;
+  const areaId = searchParams.get("areaId") ?? undefined;
+  const verticalIdFromUrl = searchParams.get("verticalId") ?? undefined;
+  const cityLabel = searchParams.get("city") ?? undefined;
+  const verticalFromUrl = searchParams.get("vertical");
+  const [vertical, setVertical] = useState(
+    verticalFromUrl?.trim() || "All verticals",
+  );
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
-  const searchParams = useSearchParams();
-  const companyFilter = searchParams.get("company") ?? undefined;
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -170,11 +177,22 @@ export function RadarPage() {
     pageSize: PAGE_SIZE,
     companyId: companyFilter,
     search: debouncedSearch || undefined,
+    areaId,
+    verticalId:
+      verticalFromUrl && vertical === verticalFromUrl
+        ? verticalIdFromUrl
+        : undefined,
   });
 
   useEffect(() => {
     setPage(1);
-  }, [triggerType, vertical, companyFilter, debouncedSearch]);
+  }, [triggerType, vertical, companyFilter, debouncedSearch, areaId]);
+
+  useEffect(() => {
+    if (verticalFromUrl?.trim()) {
+      setVertical(verticalFromUrl.trim());
+    }
+  }, [verticalFromUrl]);
 
   const triggers = data?.triggers ?? [];
   const searchLabel = debouncedSearch;
@@ -193,9 +211,11 @@ export function RadarPage() {
         }}
         subtitle={
           data
-            ? `Ranked BD triggers — ${new Date(
-                data.scannedAt,
-              ).toLocaleDateString("en-AU", {
+            ? `Ranked BD triggers${
+                cityLabel ? ` — ${cityLabel}` : ""
+              }${
+                vertical !== "All verticals" ? ` · ${vertical}` : ""
+              } — ${new Date(data.scannedAt).toLocaleDateString("en-AU", {
                 weekday: "long",
                 day: "numeric",
                 month: "long",
@@ -249,13 +269,23 @@ export function RadarPage() {
           </Metrics>
 
           <Filters>
+            {areaId ? (
+              <Chip
+                label={cityLabel ? `City: ${cityLabel}` : "City filter"}
+                onDelete={() => router.push("/radar")}
+                sx={{ background: "#fff" }}
+              />
+            ) : null}
             <FormControl size="small" sx={{ minWidth: 160 }}>
               <Select
                 value={vertical}
                 onChange={(e) => setVertical(e.target.value)}
                 sx={{ background: "#fff", borderRadius: 2 }}
               >
-                {data.filters.verticals.map((v) => (
+                {(data.filters.verticals.includes(vertical)
+                  ? data.filters.verticals
+                  : [vertical, ...data.filters.verticals]
+                ).map((v) => (
                   <MenuItem key={v} value={v}>
                     {v}
                   </MenuItem>
